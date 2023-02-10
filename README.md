@@ -1,3 +1,5 @@
+[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fordo-one%2Fpackage-histogram%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/ordo-one/package-histogram)
+[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fordo-one%2Fpackage-histogram%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/ordo-one/package-histogram)
 [![codecov](https://codecov.io/gh/ordo-one/package-histogram/branch/main/graph/badge.svg?token=o6efZbwgoD)](https://codecov.io/gh/ordo-one/package-histogram)
 [![Swift address sanitizer](https://github.com/ordo-one/package-histogram/actions/workflows/swift-sanitizer-address.yml/badge.svg)](https://github.com/ordo-one/package-histogram/actions/workflows/swift-sanitizer-address.yml)
 [![Swift thread sanitizer](https://github.com/ordo-one/package-histogram/actions/workflows/swift-sanitizer-thread.yml/badge.svg)](https://github.com/ordo-one/package-histogram/actions/workflows/swift-sanitizer-thread.yml)
@@ -30,6 +32,23 @@ The current supported features are:
 Users are encouraged to read the documentation from the original [Java implementation](https://github.com/HdrHistogram/HdrHistogram), 
 as most of the concepts translate directly to the Swift port. Additional Thanks to the maintainers of the Rust port for a nice introduction to the package that we've largely borrowed.
 
+# Adding dependencies
+To add to your project:
+```
+dependencies: [
+    .package(url: "https://github.com/ordo-one/package-histogram", .upToNextMajor(from: "0.0.1")),
+]
+```
+
+and then add the dependency to your target, e.g.:
+
+```
+.executableTarget(
+  name: "MyExecutableTarget",
+  dependencies: [
+  .product(name: "Histogram", package: "package-histogram")
+]),
+```
 ## Usage
 
 The Histogram API follows that of the original HdrHistogram Java implementation, with some modifications to make its use more idiomatic in Swift. 
