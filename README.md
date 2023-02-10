@@ -1,3 +1,5 @@
+[![codecov](https://codecov.io/gh/ordo-one/package-histogram/branch/main/graph/badge.svg?token=o6efZbwgoD)](https://codecov.io/gh/ordo-one/package-histogram)
+
 # Histogram
 
 Histogram is a port of Gil Tene's [High Dynamic Range (HDR) Histogram](http://hdrhistogram.org) to native Swift. It provides recording and analyzing of sampled data value counts across a large, configurable value range with configurable precision within the range. The resulting "HDR" histogram allows for fast and accurate analysis of the extreme ranges of data with non-normal distributions, like latency.
