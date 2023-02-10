@@ -1,6 +1,6 @@
-# Histogram: Swift port of [High Dynamic Range (HDR) Histogram](http://hdrhistogram.org)
+# Histogram
 
-Histogram
+A Swift port of the [High Dynamic Range (HDR) Histogram](http://hdrhistogram.org)
 ----------------------------------------------
 Histogram is a port of Gil Tene's HdrHistogram to native Swift. It provides recording and analyzing of sampled data value counts across a large, configurable value range with configurable precision within the range. The resulting "HDR" histogram allows for fast and accurate analysis of the extreme ranges of data with non-normal distributions, like latency.
 
