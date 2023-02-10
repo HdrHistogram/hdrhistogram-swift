@@ -16,7 +16,9 @@ The Histogram maintains a fixed cost in both space and time. A Histogram's memor
 
 The memory footprint is fixed regardless of the number of data value samples recorded, and depends solely on the dynamic range and precision chosen. The amount of work involved in recording a sample is constant, and directly computes storage index locations such that no iteration or searching is ever involved in recording data values.
 
-This port contains a subset of the functionality supported by the Java implementation.  The current supported features are:
+This port contains a subset of the functionality supported by the Java implementation.  
+
+The current supported features are:
 
 * Generic histogram class parametrized by type used for bucket count
 * All iterator types (all values, recorded, percentiles, linear, logarithmic)
