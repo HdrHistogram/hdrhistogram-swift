@@ -1,4 +1,6 @@
 [![codecov](https://codecov.io/gh/ordo-one/package-histogram/branch/main/graph/badge.svg?token=o6efZbwgoD)](https://codecov.io/gh/ordo-one/package-histogram)
+[![Swift address sanitizer](https://github.com/ordo-one/package-histogram/actions/workflows/swift-sanitizer-address.yml/badge.svg)](https://github.com/ordo-one/package-histogram/actions/workflows/swift-sanitizer-address.yml)
+[![Swift thread sanitizer](https://github.com/ordo-one/package-histogram/actions/workflows/swift-sanitizer-thread.yml/badge.svg)](https://github.com/ordo-one/package-histogram/actions/workflows/swift-sanitizer-thread.yml)
 
 # Histogram
 
