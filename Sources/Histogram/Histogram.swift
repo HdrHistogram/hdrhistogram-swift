@@ -226,8 +226,12 @@ public struct Histogram<Count: FixedWidthInteger> {
             return false
         }
 
-        if index >= counts.count && autoResize {
-            resize(newHighestTrackableValue: value)
+        if index >= counts.count {
+            if autoResize {
+                resize(newHighestTrackableValue: value)
+            } else {
+                return false
+            }
         }
 
         incrementCountForIndex(index, by: count)

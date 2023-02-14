@@ -183,6 +183,12 @@ final class HistogramTests: XCTestCase {
         XCTAssertEqual(1, h.countForValue(Self.value))
         XCTAssertEqual(1, h.totalCount)
 
+        // try to record value above highest
+        XCTAssertFalse(h.record(Self.highestTrackableValue * 2))
+
+        XCTAssertEqual(1, h.countForValue(Self.value))
+        XCTAssertEqual(1, h.totalCount)
+
         self.verifyMaxValue(histogram: h)
     }
 
