@@ -22,7 +22,6 @@ let package = Package(
     dependencies: [
         // Dependencies declare other packages that this package depends on.
         .package(url: "https://github.com/apple/swift-numerics", from: "1.0.0"),
-        .package(url: "https://github.com/ordo-one/TextTable", .upToNextMajor(from: "0.0.1")),
         .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.1.0"),
         .package(url: "https://github.com/SwiftPackageIndex/SPIManifest.git", from: "0.12.0"),
     ],
@@ -33,7 +32,6 @@ let package = Package(
             name: "Histogram",
             dependencies: [
                 .product(name: "Numerics", package: "swift-numerics"),
-                .product(name: "TextTable", package: "TextTable"),
             ]),
         .executableTarget(
             name: "HistogramExample",

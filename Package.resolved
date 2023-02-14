@@ -37,15 +37,6 @@
       }
     },
     {
-      "identity" : "texttable",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/ordo-one/TextTable",
-      "state" : {
-        "revision" : "a27a07300cf4ae322e0079ca0a475c5583dd575f",
-        "version" : "0.0.2"
-      }
-    },
-    {
       "identity" : "yams",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/jpsim/Yams.git",

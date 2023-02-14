@@ -8,8 +8,8 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 //
 
+import Foundation
 import Numerics
-import TextTable
 
 /**
  * Number of significant digits for values recorded in histogram.
@@ -1028,67 +1028,62 @@ public struct Histogram<Count: FixedWidthInteger> {
             percentileTicksPerHalfDistance ticks: Int = 5,
             format: HistogramOutputFormat = .plainText) {
 
+        func padded(_ s: String, to: Int) -> String {
+            if s.count < to {
+                return String(repeating: " ", count: to - s.count) + s
+            }
+            return s
+        }
+
         if format == .csv {
-            return outputPercentileDistributionCsv(to: &stream, outputValueUnitScalingRatio: outputValueUnitScalingRatio, percentileTicksPerHalfDistance: ticks)
+            stream.write("\"Value\",\"Percentile\",\"TotalCount\",\"1/(1-Percentile)\"\n")
+        } else {
+            stream.write("\(padded("Value", to: 12)) \(padded("Percentile", to: 14)) \(padded("TotalCount", to: 10)) \(padded("1/(1-Percentile)", to: 14))\n\n")
         }
 
-        let table = TextTable<IterationValue> {
-            let lastLine = ($0.percentile == 100.0)
+        let percentileFormatString = format == .csv ?
+                "%.\(numberOfSignificantValueDigits.rawValue)f,%.12f,%d,%.2f\n" :
+                "%12.\(numberOfSignificantValueDigits.rawValue)f %2.12f %10d %14.2f\n"
 
-            return [
-                Column("Value" <- "%.\(self.numberOfSignificantValueDigits.rawValue)f".format(Double($0.value) / outputValueUnitScalingRatio), width: 12, align: .right),
-                Column("Percentile" <- "%.12f".format($0.percentile / 100.0), width: 14, align: .right),
-                Column("TotalCount" <- $0.totalCountToThisValue, width: 10, align: .right),
-                Column("1/(1-Percentile)" <- (lastLine ? "" : "%.2f".format(1.0 / (1.0 - ($0.percentile / 100.0)))), align: .right)
-            ]
-        }
-
-        let data = [IterationValue](percentiles(ticksPerHalfDistance: ticks))
-        stream.write(table.string(for: data) ?? "unable to render percentile table")
-
-        // Calculate and output mean and std. deviation.
-        // Note: mean/std. deviation numbers are very often completely irrelevant when
-        // data is extremely non-normal in distribution (e.g. in cases of strong multi-modal
-        // response time distribution associated with GC pauses). However, reporting these numbers
-        // can be very useful for contrasting with the detailed percentile distribution
-        // reported by outputPercentileDistribution(). It is not at all surprising to find
-        // percentile distributions where results fall many tens or even hundreds of standard
-        // deviations away from the mean - such results simply indicate that the data sampled
-        // exhibits a very non-normal distribution, highlighting situations for which the std.
-        // deviation metric is a useless indicator.
-
-        let mean =  self.mean / outputValueUnitScalingRatio
-        let stdDeviation = self.stdDeviation / outputValueUnitScalingRatio
-
-        stream.write(("#[Mean    = %12.\(numberOfSignificantValueDigits.rawValue)f," +
-                    " StdDeviation   = %12.\(numberOfSignificantValueDigits.rawValue)f]\n").format(mean, stdDeviation))
-        stream.write(("#[Max     = %12.\(numberOfSignificantValueDigits.rawValue)f," +
-                    " Total count    = %12d]\n").format(Double(max) / outputValueUnitScalingRatio, totalCount))
-        stream.write("#[Buckets = %12d, SubBuckets     = %12d]\n".format(bucketCount, subBucketCount))
-    }
-
-    private func outputPercentileDistributionCsv<Stream: TextOutputStream>(
-            to stream: inout Stream,
-            outputValueUnitScalingRatio: Double,
-            percentileTicksPerHalfDistance ticks: Int = 5) {
-        stream.write("\"Value\",\"Percentile\",\"TotalCount\",\"1/(1-Percentile)\"\n")
-
-        let percentileFormatString = "%.\(numberOfSignificantValueDigits)f,%.12f,%d,%.2f\n"
-        let lastLinePercentileFormatString = "%.\(numberOfSignificantValueDigits)f,%.12f,%d,Infinity\n"
+        let lastLinePercentileFormatString = format == .csv ?
+                "%.\(numberOfSignificantValueDigits.rawValue)f,%.12f,%d,Infinity\n" :
+                "%12.\(numberOfSignificantValueDigits.rawValue)f %2.12f %10d\n"
 
         for iv in percentiles(ticksPerHalfDistance: ticks) {
-            if iv.percentile != 100.0 {
-                stream.write(percentileFormatString.format(
+            if iv.percentileLevelIteratedTo != 100.0 {
+                stream.write(String(format: percentileFormatString,
                         Double(iv.value) / outputValueUnitScalingRatio,
-                        iv.percentile / 100.0,
+                        iv.percentileLevelIteratedTo / 100.0,
                         iv.totalCountToThisValue,
-                        1.0 / (1.0 - (iv.percentile / 100.0))))
+                        1.0 / (1.0 - (iv.percentileLevelIteratedTo / 100.0))))
             } else {
-                stream.write(lastLinePercentileFormatString.format(
+                stream.write(String(format: lastLinePercentileFormatString,
                         Double(iv.value) / outputValueUnitScalingRatio,
-                        iv.percentile / 100.0,
+                        iv.percentileLevelIteratedTo / 100.0,
                         iv.totalCountToThisValue))
             }
+        }
+
+        if format != .csv {
+            // Calculate and output mean and std. deviation.
+            // Note: mean/std. deviation numbers are very often completely irrelevant when
+            // data is extremely non-normal in distribution (e.g. in cases of strong multi-modal
+            // response time distribution associated with GC pauses). However, reporting these numbers
+            // can be very useful for contrasting with the detailed percentile distribution
+            // reported by outputPercentileDistribution(). It is not at all surprising to find
+            // percentile distributions where results fall many tens or even hundreds of standard
+            // deviations away from the mean - such results simply indicate that the data sampled
+            // exhibits a very non-normal distribution, highlighting situations for which the std.
+            // deviation metric is a useless indicator.
+            //
+
+            let mean = self.mean / outputValueUnitScalingRatio
+            let stdDeviation = self.stdDeviation / outputValueUnitScalingRatio
+            stream.write(String(format: "#[Mean    = %12.\(numberOfSignificantValueDigits.rawValue)f," +
+                        " StdDeviation   = %12.\(numberOfSignificantValueDigits.rawValue)f]\n", mean, stdDeviation))
+            stream.write(String(format: "#[Max     = %12.\(numberOfSignificantValueDigits.rawValue)f," +
+                        " Total count    = %12d]\n", Double(max) / outputValueUnitScalingRatio, totalCount))
+            stream.write(String(format: "#[Buckets = %12d, SubBuckets     = %12d]\n", bucketCount, subBucketCount))
         }
     }
 

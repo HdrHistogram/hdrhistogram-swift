@@ -404,6 +404,86 @@ final class HistogramTests: XCTestCase {
         verifyMaxValue(histogram: histogram)
     }
 
+    func testOutputPercentileDistributionPlainText() {
+        var histogram = Histogram<UInt64>(highestTrackableValue: 10_000, numberOfSignificantValueDigits: .three)
+
+        for i in 1...10 {
+            histogram.record(UInt64(i))
+        }
+
+        var output = ""
+        histogram.outputPercentileDistribution(to: &output, outputValueUnitScalingRatio: 1.0, percentileTicksPerHalfDistance: 5, format: .plainText)
+
+        let expectedOutput = """
+       Value     Percentile TotalCount 1/(1-Percentile)
+
+       1.000 0.000000000000          1           1.00
+       1.000 0.100000000000          1           1.11
+       2.000 0.200000000000          2           1.25
+       3.000 0.300000000000          3           1.43
+       4.000 0.400000000000          4           1.67
+       5.000 0.500000000000          5           2.00
+       6.000 0.550000000000          6           2.22
+       6.000 0.600000000000          6           2.50
+       7.000 0.650000000000          7           2.86
+       7.000 0.700000000000          7           3.33
+       8.000 0.750000000000          8           4.00
+       8.000 0.775000000000          8           4.44
+       8.000 0.800000000000          8           5.00
+       9.000 0.825000000000          9           5.71
+       9.000 0.850000000000          9           6.67
+       9.000 0.875000000000          9           8.00
+       9.000 0.887500000000          9           8.89
+       9.000 0.900000000000          9          10.00
+      10.000 0.912500000000         10          11.43
+      10.000 1.000000000000         10
+#[Mean    =        5.500, StdDeviation   =        2.872]
+#[Max     =       10.000, Total count    =           10]
+#[Buckets =            4, SubBuckets     =         2048]
+
+"""
+
+        XCTAssertEqual(output, expectedOutput)
+    }
+
+    func testOutputPercentileDistributionCsv() {
+        var histogram = Histogram<UInt64>(highestTrackableValue: 10_000, numberOfSignificantValueDigits: .three)
+
+        for i in 1...10 {
+            histogram.record(UInt64(i))
+        }
+
+        var output = ""
+        histogram.outputPercentileDistribution(to: &output, outputValueUnitScalingRatio: 1.0, percentileTicksPerHalfDistance: 5, format: .csv)
+
+        let expectedOutput = """
+"Value","Percentile","TotalCount","1/(1-Percentile)"
+1.000,0.000000000000,1,1.00
+1.000,0.100000000000,1,1.11
+2.000,0.200000000000,2,1.25
+3.000,0.300000000000,3,1.43
+4.000,0.400000000000,4,1.67
+5.000,0.500000000000,5,2.00
+6.000,0.550000000000,6,2.22
+6.000,0.600000000000,6,2.50
+7.000,0.650000000000,7,2.86
+7.000,0.700000000000,7,3.33
+8.000,0.750000000000,8,4.00
+8.000,0.775000000000,8,4.44
+8.000,0.800000000000,8,5.00
+9.000,0.825000000000,9,5.71
+9.000,0.850000000000,9,6.67
+9.000,0.875000000000,9,8.00
+9.000,0.887500000000,9,8.89
+9.000,0.900000000000,9,10.00
+10.000,0.912500000000,10,11.43
+10.000,1.000000000000,10,Infinity
+
+"""
+
+        XCTAssertEqual(output, expectedOutput)
+    }
+
     func verifyMaxValue(histogram h: Histogram<UInt64>) {
         var computedMaxValue: UInt64 = 0
         for i in 0..<h.counts.count {
