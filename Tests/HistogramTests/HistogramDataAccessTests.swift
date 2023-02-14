@@ -210,6 +210,31 @@ final class HistogramDataAccessTests: XCTestCase {
         }
     }
 
+    func testPercentileIterator() {
+        typealias H = Histogram<UInt64>
+        var histogram = H(highestTrackableValue: 10_000, numberOfSignificantValueDigits: .three)
+
+        for i in 1...10 {
+            histogram.record(UInt64(i))
+        }
+
+        let expected = [
+            H.IterationValue(value: 1, prevValue: 0, count: 1, percentile: 10.0, percentileLevelIteratedTo: 0.0, countAddedInThisIterationStep: 1, totalCountToThisValue: 1, totalValueToThisValue: 1),
+            H.IterationValue(value: 3, prevValue: 1, count: 1, percentile: 30.0, percentileLevelIteratedTo: 25.0, countAddedInThisIterationStep: 2, totalCountToThisValue: 3, totalValueToThisValue: 6),
+            H.IterationValue(value: 5, prevValue: 3, count: 1, percentile: 50.0, percentileLevelIteratedTo: 50.0, countAddedInThisIterationStep: 2, totalCountToThisValue: 5, totalValueToThisValue: 15),
+            H.IterationValue(value: 7, prevValue: 5, count: 1, percentile: 70.0, percentileLevelIteratedTo: 62.5, countAddedInThisIterationStep: 2, totalCountToThisValue: 7, totalValueToThisValue: 28),
+            H.IterationValue(value: 8, prevValue: 7, count: 1, percentile: 80.0, percentileLevelIteratedTo: 75.0, countAddedInThisIterationStep: 1, totalCountToThisValue: 8, totalValueToThisValue: 36),
+            H.IterationValue(value: 9, prevValue: 8, count: 1, percentile: 90.0, percentileLevelIteratedTo: 81.25, countAddedInThisIterationStep: 1, totalCountToThisValue: 9, totalValueToThisValue: 45),
+            H.IterationValue(value: 9, prevValue: 9, count: 1, percentile: 90.0, percentileLevelIteratedTo: 87.5, countAddedInThisIterationStep: 0, totalCountToThisValue: 9, totalValueToThisValue: 45),
+            H.IterationValue(value: 10, prevValue: 9, count: 1, percentile: 100.0, percentileLevelIteratedTo: 90.625, countAddedInThisIterationStep: 1, totalCountToThisValue: 10, totalValueToThisValue: 55),
+            H.IterationValue(value: 10, prevValue: 10, count: 1, percentile: 100.0, percentileLevelIteratedTo: 100.0, countAddedInThisIterationStep: 0, totalCountToThisValue: 10, totalValueToThisValue: 55),
+        ]
+
+        let output = [H.IterationValue](histogram.percentiles(ticksPerHalfDistance: 2))
+
+        XCTAssertEqual(output, expected)
+    }
+
     func testLinearBucketValues() {
         // Note that using linear buckets should work "as expected" as long as the number of linear buckets
         // is lower than the resolution level determined by largestValueWithSingleUnitResolution

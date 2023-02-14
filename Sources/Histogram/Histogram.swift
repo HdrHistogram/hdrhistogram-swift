@@ -519,7 +519,7 @@ public struct Histogram<Count: FixedWidthInteger> {
     /**
      * Represents a value point iterated through in a Histogram, with associated stats.
      */
-    public struct IterationValue {
+    public struct IterationValue: Equatable {
         /**
          * The actual value level that was iterated to by the iterator.
          */
@@ -540,6 +540,15 @@ public struct Histogram<Count: FixedWidthInteger> {
          * The percentile of recorded values in the histogram at values equal or smaller than value.
          */
         public let percentile: Double
+
+        /**
+         * The percentile level that the iterator returning this ``IterationValue`` had iterated to.
+         * Generally, `percentileLevelIteratedTo` will be equal to or smaller than `percentile`,
+         * but the same value point can contain multiple iteration levels for some iterators. E.g. a
+         * percentile iterator can stop multiple times in the exact same value point (if the count at
+         * that value covers a range of multiple percentiles in the requested percentile iteration points).
+         */
+        public let percentileLevelIteratedTo: Double
 
         /**
          * The count of recorded values in the histogram that were added to the ``totalCountToThisValue`` as a result
@@ -604,7 +613,7 @@ public struct Histogram<Count: FixedWidthInteger> {
             }
         }
 
-        mutating func makeIterationValueAndUpdatePrev(value: UInt64? = nil) -> IterationValue {
+        mutating func makeIterationValueAndUpdatePrev(value: UInt64? = nil, percentileIteratedTo: Double? = nil) -> IterationValue {
             let valueIteratedTo = value ?? self.valueIteratedTo
 
             defer {
@@ -612,8 +621,10 @@ public struct Histogram<Count: FixedWidthInteger> {
                 totalCountToPrevIndex = totalCountToCurrentIndex
             }
 
+            let percentile = (100.0 * Double(totalCountToCurrentIndex)) / Double(arrayTotalCount)
+
             return IterationValue(value: valueIteratedTo, prevValue: prevValueIteratedTo, count: countAtThisValue,
-                    percentile: (100.0 * Double(totalCountToCurrentIndex)) / Double(arrayTotalCount),
+                    percentile: percentile, percentileLevelIteratedTo: percentileIteratedTo ?? percentile,
                     countAddedInThisIterationStep: totalCountToCurrentIndex - totalCountToPrevIndex,
                     totalCountToThisValue: totalCountToCurrentIndex, totalValueToThisValue: totalValueToCurrentIndex)
         }
@@ -669,7 +680,7 @@ public struct Histogram<Count: FixedWidthInteger> {
                     defer {
                         incrementIterationLevel()
                     }
-                    return impl.makeIterationValueAndUpdatePrev()
+                    return impl.makeIterationValueAndUpdatePrev(percentileIteratedTo: percentileLevelToIterateTo)
                 }
                 impl.incrementSubBucket()
             }
