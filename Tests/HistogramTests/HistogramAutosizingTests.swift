@@ -8,12 +8,13 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 //
 
-import XCTest
-@testable import Histogram
+// swiftlint:disable identifier_name
 
+@testable import Histogram
+import XCTest
 
 final class HistogramAutosizingTests: XCTestCase {
-    static let highestTrackableValue = UInt64(3_600) * 1_000 * 1_000 // e.g. for 1 hr in usec units
+    private static let highestTrackableValue = UInt64(3_600) * 1_000 * 1_000 // e.g. for 1 hr in usec units
 
     func testHistogramAutoSizingEdges() {
         var histogram = Histogram<UInt64>(numberOfSignificantValueDigits: .three)
@@ -74,7 +75,7 @@ final class HistogramAutosizingTests: XCTestCase {
         //histogram2.add(histogram1)
 
         XCTAssert(histogram2.valuesAreEquivalent(histogram2.max, 1_000_000_000),
-                "Max should be equivalent to 1_000_000_000")
+                  "Max should be equivalent to 1_000_000_000")
     }
 
     func testAutoSizingAcrossContinuousRange() {

@@ -8,15 +8,17 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 //
 
+// swiftlint:disable file_length identifier_name line_length number_separator
+
+@testable import Histogram
 import Numerics
 import XCTest
-@testable import Histogram
 
-
+// swiftlint:disable:next type_body_length
 final class HistogramTests: XCTestCase {
-    static let highestTrackableValue = UInt64(3_600) * 1_000 * 1_000 // e.g. for 1 hr in usec units
-    static let numberOfSignificantValueDigits = SignificantDigits.three
-    static let value: UInt64 = 4
+    private static let highestTrackableValue = UInt64(3_600) * 1_000 * 1_000 // e.g. for 1 hr in usec units
+    private static let numberOfSignificantValueDigits = SignificantDigits.three
+    private static let value: UInt64 = 4
 
     func testCreate() throws {
         let h = Histogram<UInt64>(lowestDiscernibleValue: 1, highestTrackableValue: 3_600_000_000, numberOfSignificantValueDigits: .three)
@@ -132,13 +134,6 @@ final class HistogramTests: XCTestCase {
         // upper half of second bucket, last slot
         XCTAssertEqual(1, h.bucketIndexForValue(UInt64(Int64.max)))
         XCTAssertEqual(1024 + 1023, h.subBucketIndexForValue(UInt64(Int64.max), bucketIndex: 1))
-    }
-
-    func testUnitMagnitude52SubBucketMagnitude11Throws() throws {
-        /* Cannot catch fatal errors.
-        let h = Histogram<UInt64>(lowestDiscernibleValue: UInt64(1) << 52, highestTrackableValue: UInt64(1) << 62, numberOfSignificantValueDigits: .three)
-        XCTAssertNil(h)
-        */
     }
 
     func testUnitMagnitude54SubBucketMagnitude8Ok() throws {
@@ -300,7 +295,9 @@ final class HistogramTests: XCTestCase {
     }
 
     func testScaledSizeOfEquivalentValueRange() throws {
-        let histogram = Histogram<UInt64>(lowestDiscernibleValue: 1024, highestTrackableValue: Self.highestTrackableValue, numberOfSignificantValueDigits: Self.numberOfSignificantValueDigits)
+        let histogram = Histogram<UInt64>(lowestDiscernibleValue: 1024,
+                                          highestTrackableValue: Self.highestTrackableValue,
+                                          numberOfSignificantValueDigits: Self.numberOfSignificantValueDigits)
 
         XCTAssertEqual(1 * 1024, histogram.sizeOfEquivalentRangeForValue(1 * 1024))
         XCTAssertEqual(2 * 1024, histogram.sizeOfEquivalentRangeForValue(2500 * 1024))
@@ -484,12 +481,10 @@ final class HistogramTests: XCTestCase {
         XCTAssertEqual(output, expectedOutput)
     }
 
-    func verifyMaxValue(histogram h: Histogram<UInt64>) {
+    private func verifyMaxValue(histogram h: Histogram<UInt64>) {
         var computedMaxValue: UInt64 = 0
-        for i in 0..<h.counts.count {
-            if h.counts[i] > 0 {
-                computedMaxValue = h.valueFromIndex(i)
-            }
+        for i in 0..<h.counts.count where h.counts[i] > 0 {
+            computedMaxValue = h.valueFromIndex(i)
         }
         computedMaxValue = (computedMaxValue == 0) ? 0 : h.highestEquivalentForValue(computedMaxValue)
         XCTAssertEqual(computedMaxValue, h.maxValue)

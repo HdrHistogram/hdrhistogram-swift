@@ -8,6 +8,8 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 //
 
+// swiftlint:disable file_length type_body_length line_length identifier_name
+
 import Foundation
 import Numerics
 
@@ -49,7 +51,6 @@ public enum HistogramOutputFormat {
  * they are encountered. Note that recording calls that cause auto-resizing may take longer to execute, as resizing
  * incurs allocation and copying of internal data structures.
  */
-
 public struct Histogram<Count: FixedWidthInteger> {
     /// The lowest value that can be discerned (distinguished from 0) by the histogram.
     public let lowestDiscernibleValue: UInt64
@@ -69,17 +70,13 @@ public struct Histogram<Count: FixedWidthInteger> {
     // Biggest value that can fit in bucket 0
     let subBucketMask: UInt64
 
-    @usableFromInline
-    var maxValue: UInt64 = 0
+    @usableFromInline var maxValue: UInt64 = 0
 
-    @usableFromInline
-    var minNonZeroValue: UInt64 = .max
+    @usableFromInline var minNonZeroValue: UInt64 = .max
 
-    @usableFromInline
-    var counts: [Count]
+    @usableFromInline var counts: [Count]
 
-    @usableFromInline
-    var _totalCount: UInt64 = 0
+    @usableFromInline var _totalCount: UInt64 = 0
 
     /// Total count of all recorded values in the histogram
     public var totalCount: UInt64 { _totalCount }
@@ -88,7 +85,7 @@ public struct Histogram<Count: FixedWidthInteger> {
     public let numberOfSignificantValueDigits: SignificantDigits
 
     /// Control whether or not the histogram can auto-resize and auto-adjust its ``highestTrackableValue``.
-    public var autoResize: Bool = false
+    public var autoResize = false
 
     let subBucketHalfCountMagnitude: UInt8
 
@@ -167,7 +164,7 @@ public struct Histogram<Count: FixedWidthInteger> {
         // fits in 62 bits is debatable, and it makes it harder to work through the logic.
         // Sums larger than 64 are totally broken as leadingZeroCountBase would go negative.
         precondition(unitMagnitude + subBucketHalfCountMagnitude <= 61,
-                "Invalid arguments: Cannot represent numberOfSignificantValueDigits worth of values beyond lowestDiscernibleValue")
+                     "Invalid arguments: Cannot represent numberOfSignificantValueDigits worth of values beyond lowestDiscernibleValue")
 
         // Establish leadingZeroCountBase, used in bucketIndexForValue() fast path:
         // subtract the bits that would be used by the largest value in bucket 0.
@@ -476,7 +473,7 @@ public struct Histogram<Count: FixedWidthInteger> {
      * - Returns: The mean value (in value units) of the histogram data.
      */
     public var mean: Double {
-        if (totalCount == 0) {
+        if totalCount == 0 {
             return 0.0
         }
         var totalValue: Double = 0
@@ -492,7 +489,7 @@ public struct Histogram<Count: FixedWidthInteger> {
      * - Returns: The standard deviation (in value units) of the histogram data.
      */
     public var stdDeviation: Double {
-        if (totalCount == 0) {
+        if totalCount == 0 {
             return 0.0
         }
 
@@ -590,7 +587,7 @@ public struct Histogram<Count: FixedWidthInteger> {
 
         var countAtThisValue: Count = 0
 
-        private var freshSubBucket: Bool = true
+        private var freshSubBucket = true
 
         init(histogram: Histogram) {
             self.histogram = histogram
@@ -623,7 +620,8 @@ public struct Histogram<Count: FixedWidthInteger> {
 
             let percentile = (100.0 * Double(totalCountToCurrentIndex)) / Double(arrayTotalCount)
 
-            return IterationValue(value: valueIteratedTo, prevValue: prevValueIteratedTo, count: countAtThisValue,
+            return IterationValue(
+                    value: valueIteratedTo, prevValue: prevValueIteratedTo, count: countAtThisValue,
                     percentile: percentile, percentileLevelIteratedTo: percentileIteratedTo ?? percentile,
                     countAddedInThisIterationStep: totalCountToCurrentIndex - totalCountToPrevIndex,
                     totalCountToThisValue: totalCountToCurrentIndex, totalValueToThisValue: totalValueToCurrentIndex)
@@ -1027,7 +1025,7 @@ public struct Histogram<Count: FixedWidthInteger> {
             outputValueUnitScalingRatio: Double,
             percentileTicksPerHalfDistance ticks: Int = 5,
             format: HistogramOutputFormat = .plainText) {
-
+        // small helper to pad strings to specific widths, for some reason "%10s"/"%10@" doesn't work in String.init(format:)
         func padded(_ s: String, to: Int) -> String {
             if s.count < to {
                 return String(repeating: " ", count: to - s.count) + s
@@ -1051,13 +1049,15 @@ public struct Histogram<Count: FixedWidthInteger> {
 
         for iv in percentiles(ticksPerHalfDistance: ticks) {
             if iv.percentileLevelIteratedTo != 100.0 {
-                stream.write(String(format: percentileFormatString,
+                stream.write(String(
+                        format: percentileFormatString,
                         Double(iv.value) / outputValueUnitScalingRatio,
                         iv.percentileLevelIteratedTo / 100.0,
                         iv.totalCountToThisValue,
                         1.0 / (1.0 - (iv.percentileLevelIteratedTo / 100.0))))
             } else {
-                stream.write(String(format: lastLinePercentileFormatString,
+                stream.write(String(
+                        format: lastLinePercentileFormatString,
                         Double(iv.value) / outputValueUnitScalingRatio,
                         iv.percentileLevelIteratedTo / 100.0,
                         iv.totalCountToThisValue))
@@ -1267,8 +1267,8 @@ public struct Histogram<Count: FixedWidthInteger> {
     private static func bucketsNeededToCoverValue(_ value: UInt64, subBucketCount: Int, unitMagnitude: UInt8) -> Int {
         var smallestUntrackableValue = UInt64(subBucketCount) << unitMagnitude
         var bucketsNeeded = 1
-        while (smallestUntrackableValue <= value) {
-            if (smallestUntrackableValue > UInt64.max / 2) {
+        while smallestUntrackableValue <= value {
+            if smallestUntrackableValue > UInt64.max / 2 {
                 return bucketsNeeded + 1
             }
             smallestUntrackableValue <<= 1
@@ -1311,6 +1311,7 @@ extension Histogram: Equatable {
         // resizing.
         if lhs.counts.count == rhs.counts.count {
             for i in 0..<lhs.counts.count {
+                // swiftlint:disable:next for_where
                 if lhs.counts[i] != rhs.counts[i] {
                     return false
                 }
@@ -1319,6 +1320,7 @@ extension Histogram: Equatable {
             // Comparing the values is valid here because we have already confirmed the histograms have the same total
             // count. It would not be correct otherwise.
             for iv in lhs.recordedValues() {
+                // swiftlint:disable:next for_where
                 if rhs.countForValue(iv.value) != iv.count {
                     return false
                 }
