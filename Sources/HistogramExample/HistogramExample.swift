@@ -7,6 +7,8 @@
 // You may obtain a copy of the License at
 // http://www.apache.org/licenses/LICENSE-2.0
 
+// swiftlint:disable identifier_name
+
 import Histogram
 
 @main
@@ -18,7 +20,7 @@ struct HistogramExample {
 
         // record some random values
         for _ in 1...100 {
-            histogram.record(UInt64.random(in: 10...1000))
+            histogram.record(UInt64.random(in: 10...1_000))
         }
 
         // record value n times

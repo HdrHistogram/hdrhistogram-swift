@@ -1,15 +1,6 @@
 {
   "pins" : [
     {
-      "identity" : "spimanifest",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/SwiftPackageIndex/SPIManifest.git",
-      "state" : {
-        "revision" : "268fab2006be5c11411994bc76f429d9971a840a",
-        "version" : "0.15.0"
-      }
-    },
-    {
       "identity" : "swift-docc-plugin",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-docc-plugin",
@@ -34,24 +25,6 @@
       "state" : {
         "revision" : "0a5bc04095a675662cf24757cc0640aa2204253b",
         "version" : "1.0.2"
-      }
-    },
-    {
-      "identity" : "texttable",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/ordo-one/TextTable",
-      "state" : {
-        "revision" : "a27a07300cf4ae322e0079ca0a475c5583dd575f",
-        "version" : "0.0.2"
-      }
-    },
-    {
-      "identity" : "yams",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/jpsim/Yams.git",
-      "state" : {
-        "revision" : "4889c132978bc6ad3e80f680011ec3dd4fead90c",
-        "version" : "5.0.4"
       }
     }
   ],
