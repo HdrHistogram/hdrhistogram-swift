@@ -65,7 +65,7 @@ final class HistogramAutosizingTests: XCTestCase {
 
     func testAutoSizingAdd() throws {
         var histogram1 = Histogram<UInt64>(numberOfSignificantValueDigits: .two)
-        var histogram2 = Histogram<UInt64>(numberOfSignificantValueDigits: .two)
+    //    let histogram2 = Histogram<UInt64>(numberOfSignificantValueDigits: .two)
 
         histogram1.record(1_000)
         histogram1.record(1_000_000_000)
@@ -74,8 +74,8 @@ final class HistogramAutosizingTests: XCTestCase {
         throw XCTSkip("Histogram.add() is not implemented yet")
         //histogram2.add(histogram1)
 
-        XCTAssert(histogram2.valuesAreEquivalent(histogram2.max, 1_000_000_000),
-                  "Max should be equivalent to 1_000_000_000")
+   //     XCTAssert(histogram2.valuesAreEquivalent(histogram2.max, 1_000_000_000),
+   //               "Max should be equivalent to 1_000_000_000")
     }
 
     func testAutoSizingAcrossContinuousRange() {
