@@ -240,7 +240,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
     /**
      * Record a value in the histogram and backfill based on an expected interval.
      *
-     * Records a value in the histogram, will round this value of to a precision at or better
+     * Records a value in the histogram, will round this value off to a precision at or better
      * than the ``numberOfSignificantValueDigits`` specified at construction time.
      *
      * This is specifically used for recording latency.  If the value is larger than the `expectedInterval`
