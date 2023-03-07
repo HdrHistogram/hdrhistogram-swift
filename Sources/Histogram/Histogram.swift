@@ -516,7 +516,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
     /**
      * Represents a value point iterated through in a Histogram, with associated stats.
      */
-    public struct IterationValue: Equatable {
+    public struct IterationValue: Equatable, Hashable {
         /**
          * The actual value level that was iterated to by the iterator.
          */
