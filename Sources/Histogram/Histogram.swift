@@ -126,7 +126,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
      *                             If not specified the histogram will be constructed to implicitly track values
      *                             as low as 1.
      *   - highestTrackableValue: The highest value to be tracked by the histogram. Must be a positive
-     *                            integer that is `>= (2 * ``lowestDiscernibleValue``)`.
+     *                            integer that is `>= (2 * lowestDiscernibleValue)`.
      *   - numberOfSignificantValueDigits The number of significant decimal digits to which the histogram will
      *                                    maintain value resolution and separation.
      *                                    Default is 3.
@@ -240,7 +240,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
     /**
      * Record a value in the histogram and backfill based on an expected interval.
      *
-     * Records a value in the histogram, will round this value of to a precision at or better
+     * Records a value in the histogram, will round this value off to a precision at or better
      * than the ``numberOfSignificantValueDigits`` specified at construction time.
      *
      * This is specifically used for recording latency.  If the value is larger than the `expectedInterval`
@@ -539,7 +539,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
         public let percentile: Double
 
         /**
-         * The percentile level that the iterator returning this ``IterationValue`` had iterated to.
+         * The percentile level that the iterator returning this ``Histogram/Histogram/IterationValue`` had iterated to.
          * Generally, `percentileLevelIteratedTo` will be equal to or smaller than `percentile`,
          * but the same value point can contain multiple iteration levels for some iterators. E.g. a
          * percentile iterator can stop multiple times in the exact same value point (if the count at
