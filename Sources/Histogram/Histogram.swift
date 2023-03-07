@@ -109,7 +109,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
      */
     public init(numberOfSignificantValueDigits: SignificantDigits = .three) {
         self.init(lowestDiscernibleValue: 1, highestTrackableValue: 2, numberOfSignificantValueDigits: numberOfSignificantValueDigits)
-        self.autoResize = true
+        autoResize = true
     }
 
     /**
@@ -202,7 +202,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
     @inlinable
     @inline(__always)
     public mutating func record(_ value: UInt64) -> Bool {
-        return record(value, count: 1)
+        record(value, count: 1)
     }
 
     /**
@@ -257,7 +257,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
     @inlinable
     @inline(__always)
     public mutating func recordCorrectedValue(_ value: UInt64, expectedInterval: UInt64) -> Bool {
-        return recordCorrectedValue(value, count: 1, expectedInterval: expectedInterval)
+        recordCorrectedValue(value, count: 1, expectedInterval: expectedInterval)
     }
 
     /**
@@ -300,7 +300,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
      * Reset the contents and stats of this histogram
      */
     public mutating func reset() {
-        for i in 0..<counts.count {
+        for i in 0 ..< counts.count {
             counts[i] = 0
         }
         _totalCount = 0
@@ -338,13 +338,13 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
         let countAtPercentile = Swift.max(1, UInt64(fpCountAtPercentile.rounded(.up)))
 
         var totalToCurrentIndex: UInt64 = 0
-        for i in 0..<counts.count {
+        for i in 0 ..< counts.count {
             totalToCurrentIndex += UInt64(counts[i])
             if totalToCurrentIndex >= countAtPercentile {
                 let valueAtIndex = valueFromIndex(i)
                 return (percentile == 0.0) ?
-                        lowestEquivalentForValue(valueAtIndex) :
-                        highestEquivalentForValue(valueAtIndex)
+                    lowestEquivalentForValue(valueAtIndex) :
+                    highestEquivalentForValue(valueAtIndex)
             }
         }
         return 0
@@ -369,7 +369,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
         }
         let targetIndex = Swift.min(countsIndexForValue(value), counts.count - 1)
         var totalToCurrentIndex: UInt64 = 0
-        for i in 0...targetIndex {
+        for i in 0 ... targetIndex {
             totalToCurrentIndex += UInt64(counts[i])
         }
         return (100.0 * Double(totalToCurrentIndex)) / Double(totalCount)
@@ -390,7 +390,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
         let lowIndex = Swift.max(0, countsIndexForValue(range.lowerBound))
         let highIndex = Swift.min(countsIndexForValue(range.upperBound), counts.count - 1)
         var count: UInt64 = 0
-        for i in lowIndex...highIndex {
+        for i in lowIndex ... highIndex {
             count += UInt64(counts[i])
         }
         return count
@@ -408,7 +408,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
      * - Returns: `true` if values are equivalent with the histogram's resolution, `false` otherwise.
      */
     public func valuesAreEquivalent(_ value1: UInt64, _ value2: UInt64) -> Bool {
-        return lowestEquivalentForValue(value1) == lowestEquivalentForValue(value2)
+        lowestEquivalentForValue(value1) == lowestEquivalentForValue(value2)
     }
 
     /**
@@ -418,7 +418,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
      */
     public var estimatedFootprintInBytes: Int {
         // Estimate overhead as 512 bytes
-        return 512 + counts.capacity * MemoryLayout<Count>.stride
+        512 + counts.capacity * MemoryLayout<Count>.stride
     }
 
     /**
@@ -431,7 +431,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
      *            `>= lowestEquivalentForValue(value)` and `<= `highestEquivalentForValue(value)`.
      */
     public func countForValue(_ value: UInt64) -> Count {
-        return counts[countsIndexForValue(value)]
+        counts[countsIndexForValue(value)]
     }
 
     /**
@@ -442,7 +442,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
      * - Returns: The minimum value recorded in the histogram.
      */
     public var min: UInt64 {
-        return (counts[0] > 0 || totalCount == 0) ? 0 : minNonZeroValue
+        (counts[0] > 0 || totalCount == 0) ? 0 : minNonZeroValue
     }
 
     /**
@@ -453,7 +453,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
      * - Returns: The maximum value recorded in the histogram.
      */
     public var max: UInt64 {
-        return maxValue == 0 ? 0 : highestEquivalentForValue(maxValue)
+        maxValue == 0 ? 0 : highestEquivalentForValue(maxValue)
     }
 
     /**
@@ -464,7 +464,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
      * - Returns: The lowest recorded non-zero value level in the histogram.
      */
     public var minNonZero: UInt64 {
-        return minNonZeroValue == UInt64.max ? UInt64.max : lowestEquivalentForValue(minNonZeroValue)
+        minNonZeroValue == UInt64.max ? UInt64.max : lowestEquivalentForValue(minNonZeroValue)
     }
 
     /**
@@ -493,7 +493,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
             return 0.0
         }
 
-        let mean = self.mean
+        let mean = mean
 
         var geometricDeviationTotal = 0.0
         for iv in recordedValues() {
@@ -596,7 +596,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
         }
 
         var hasNext: Bool {
-            return totalCountToCurrentIndex < arrayTotalCount
+            totalCountToCurrentIndex < arrayTotalCount
         }
 
         mutating func moveNext() {
@@ -611,7 +611,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
         }
 
         mutating func makeIterationValueAndUpdatePrev(value: UInt64? = nil, percentileIteratedTo: Double? = nil) -> IterationValue {
-            let valueIteratedTo = value ?? self.valueIteratedTo
+            let valueIteratedTo = value ?? valueIteratedTo
 
             defer {
                 prevValueIteratedTo = valueIteratedTo
@@ -621,10 +621,11 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
             let percentile = (100.0 * Double(totalCountToCurrentIndex)) / Double(arrayTotalCount)
 
             return IterationValue(
-                    value: valueIteratedTo, prevValue: prevValueIteratedTo, count: countAtThisValue,
-                    percentile: percentile, percentileLevelIteratedTo: percentileIteratedTo ?? percentile,
-                    countAddedInThisIterationStep: totalCountToCurrentIndex - totalCountToPrevIndex,
-                    totalCountToThisValue: totalCountToCurrentIndex, totalValueToThisValue: totalValueToCurrentIndex)
+                value: valueIteratedTo, prevValue: prevValueIteratedTo, count: countAtThisValue,
+                percentile: percentile, percentileLevelIteratedTo: percentileIteratedTo ?? percentile,
+                countAddedInThisIterationStep: totalCountToCurrentIndex - totalCountToPrevIndex,
+                totalCountToThisValue: totalCountToCurrentIndex, totalValueToThisValue: totalValueToCurrentIndex
+            )
         }
 
         var exhaustedSubBuckets: Bool { currentIndex >= histogram.counts.count }
@@ -714,7 +715,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
             }
 
             let percentileReportingTicks = UInt64(percentileTicksPerHalfDistance) *
-                            UInt64(.pow(2.0, Int(.log2(100.0 / (100.0 - percentileLevelToIterateTo))) + 1))
+                UInt64(.pow(2.0, Int(.log2(100.0 / (100.0 - percentileLevelToIterateTo))) + 1))
             percentileLevelToIterateTo += 100.0 / Double(percentileReportingTicks)
         }
     }
@@ -773,8 +774,8 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
         }
 
         private var reachedIterationLevel: Bool {
-            return impl.currentValueAtIndex >= currentStepLowestValueReportingLevel ||
-                   impl.currentIndex >= impl.histogram.counts.count - 1
+            impl.currentValueAtIndex >= currentStepLowestValueReportingLevel ||
+                impl.currentIndex >= impl.histogram.counts.count - 1
         }
 
         private mutating func incrementIterationLevel() {
@@ -836,8 +837,8 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
         }
 
         private var reachedIterationLevel: Bool {
-            return impl.currentValueAtIndex >= currentStepLowestValueReportingLevel ||
-                   impl.currentIndex >= impl.histogram.counts.count - 1
+            impl.currentValueAtIndex >= currentStepLowestValueReportingLevel ||
+                impl.currentIndex >= impl.histogram.counts.count - 1
         }
 
         private mutating func incrementIterationLevel() {
@@ -924,11 +925,11 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
 
         private var hasNext: Bool {
             // Unlike other iterators AllValuesIterator is only done when we've exhausted the indices:
-            return impl.currentIndex < impl.histogram.counts.count - 1
+            impl.currentIndex < impl.histogram.counts.count - 1
         }
 
         private var reachedIterationLevel: Bool {
-            return visitedIndex != impl.currentIndex
+            visitedIndex != impl.currentIndex
         }
 
         private mutating func incrementIterationLevel() {
@@ -949,7 +950,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
      * - Returns: An object implementing `Sequence` protocol over ``IterationValue``.
      */
     public func percentiles(ticksPerHalfDistance: Int) -> Percentiles {
-        return Percentiles(histogram: self, percentileTicksPerHalfDistance: ticksPerHalfDistance)
+        Percentiles(histogram: self, percentileTicksPerHalfDistance: ticksPerHalfDistance)
     }
 
     /**
@@ -964,7 +965,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
      * - Returns: An object implementing `Sequence` protocol over ``IterationValue``.
      */
     public func linearBucketValues(valueUnitsPerBucket: UInt64) -> LinearBucketValues {
-        return LinearBucketValues(histogram: self, valueUnitsPerBucket: valueUnitsPerBucket)
+        LinearBucketValues(histogram: self, valueUnitsPerBucket: valueUnitsPerBucket)
     }
 
     /**
@@ -980,7 +981,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
      * - Returns: An object implementing `Sequence` protocol over ``IterationValue``.
      */
     public func logarithmicBucketValues(valueUnitsInFirstBucket: UInt64, logBase: Double) -> LogarithmicBucketValues {
-        return LogarithmicBucketValues(histogram: self, valueUnitsInFirstBucket: valueUnitsInFirstBucket, logBase: logBase)
+        LogarithmicBucketValues(histogram: self, valueUnitsInFirstBucket: valueUnitsInFirstBucket, logBase: logBase)
     }
 
     /**
@@ -991,7 +992,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
      * - Returns: An object implementing `Sequence` protocol over ``IterationValue``.
      */
     public func recordedValues() -> RecordedValues {
-        return RecordedValues(histogram: self)
+        RecordedValues(histogram: self)
     }
 
     /**
@@ -1003,7 +1004,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
      * - Returns: An object implementing `Sequence` protocol over ``IterationValue``.
      */
     public func allValues() -> AllValues {
-        return AllValues(histogram: self)
+        AllValues(histogram: self)
     }
 
     // MARK: Textual percentile output support.
@@ -1020,11 +1021,12 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
      *   - outputValueUnitScalingRatio: The scaling factor by which to divide histogram recorded values units in output.
      *   - format: The output format.
      */
-    public func outputPercentileDistribution<Stream: TextOutputStream>(
-            to stream: inout Stream,
-            outputValueUnitScalingRatio: Double,
-            percentileTicksPerHalfDistance ticks: Int = 5,
-            format: HistogramOutputFormat = .plainText) {
+    public func outputPercentileDistribution(
+        to stream: inout some TextOutputStream,
+        outputValueUnitScalingRatio: Double,
+        percentileTicksPerHalfDistance ticks: Int = 5,
+        format: HistogramOutputFormat = .plainText
+    ) {
         // small helper to pad strings to specific widths, for some reason "%10s"/"%10@" doesn't work in String.init(format:)
         func padded(_ s: String, to: Int) -> String {
             if s.count < to {
@@ -1040,27 +1042,29 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
         }
 
         let percentileFormatString = format == .csv ?
-                "%.\(numberOfSignificantValueDigits.rawValue)f,%.12f,%d,%.2f\n" :
-                "%12.\(numberOfSignificantValueDigits.rawValue)f %2.12f %10d %14.2f\n"
+            "%.\(numberOfSignificantValueDigits.rawValue)f,%.12f,%d,%.2f\n" :
+            "%12.\(numberOfSignificantValueDigits.rawValue)f %2.12f %10d %14.2f\n"
 
         let lastLinePercentileFormatString = format == .csv ?
-                "%.\(numberOfSignificantValueDigits.rawValue)f,%.12f,%d,Infinity\n" :
-                "%12.\(numberOfSignificantValueDigits.rawValue)f %2.12f %10d\n"
+            "%.\(numberOfSignificantValueDigits.rawValue)f,%.12f,%d,Infinity\n" :
+            "%12.\(numberOfSignificantValueDigits.rawValue)f %2.12f %10d\n"
 
         for iv in percentiles(ticksPerHalfDistance: ticks) {
             if iv.percentileLevelIteratedTo != 100.0 {
                 stream.write(String(
-                        format: percentileFormatString,
-                        Double(iv.value) / outputValueUnitScalingRatio,
-                        iv.percentileLevelIteratedTo / 100.0,
-                        iv.totalCountToThisValue,
-                        1.0 / (1.0 - (iv.percentileLevelIteratedTo / 100.0))))
+                    format: percentileFormatString,
+                    Double(iv.value) / outputValueUnitScalingRatio,
+                    iv.percentileLevelIteratedTo / 100.0,
+                    iv.totalCountToThisValue,
+                    1.0 / (1.0 - (iv.percentileLevelIteratedTo / 100.0))
+                ))
             } else {
                 stream.write(String(
-                        format: lastLinePercentileFormatString,
-                        Double(iv.value) / outputValueUnitScalingRatio,
-                        iv.percentileLevelIteratedTo / 100.0,
-                        iv.totalCountToThisValue))
+                    format: lastLinePercentileFormatString,
+                    Double(iv.value) / outputValueUnitScalingRatio,
+                    iv.percentileLevelIteratedTo / 100.0,
+                    iv.totalCountToThisValue
+                ))
             }
         }
 
@@ -1077,12 +1081,12 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
             // deviation metric is a useless indicator.
             //
 
-            let mean = self.mean / outputValueUnitScalingRatio
-            let stdDeviation = self.stdDeviation / outputValueUnitScalingRatio
+            let mean = mean / outputValueUnitScalingRatio
+            let stdDeviation = stdDeviation / outputValueUnitScalingRatio
             stream.write(String(format: "#[Mean    = %12.\(numberOfSignificantValueDigits.rawValue)f," +
-                        " StdDeviation   = %12.\(numberOfSignificantValueDigits.rawValue)f]\n", mean, stdDeviation))
+                    " StdDeviation   = %12.\(numberOfSignificantValueDigits.rawValue)f]\n", mean, stdDeviation))
             stream.write(String(format: "#[Max     = %12.\(numberOfSignificantValueDigits.rawValue)f," +
-                        " Total count    = %12d]\n", Double(max) / outputValueUnitScalingRatio, totalCount))
+                    " Total count    = %12d]\n", Double(max) / outputValueUnitScalingRatio, totalCount))
             stream.write(String(format: "#[Buckets = %12d, SubBuckets     = %12d]\n", bucketCount, subBucketCount))
         }
     }
@@ -1131,7 +1135,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
      * - Returns: The highest value that is equivalent to the given value within the histogram's resolution.
      */
     public func highestEquivalentForValue(_ value: UInt64) -> UInt64 {
-        return nextNonEquivalentForValue(value) - 1
+        nextNonEquivalentForValue(value) - 1
     }
 
     /**
@@ -1161,7 +1165,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
      * - Returns: The value lies in the middle (rounded up) of the range of values equivalent the given value.
      */
     public func medianEquivalentForValue(_ value: UInt64) -> UInt64 {
-        return lowestEquivalentForValue(value) + (sizeOfEquivalentRangeForValue(value) >> 1)
+        lowestEquivalentForValue(value) + (sizeOfEquivalentRangeForValue(value) >> 1)
     }
 
     /**
@@ -1173,7 +1177,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
      * - Returns: The next value that is not equivalent to the given value within the histogram's resolution.
      */
     public func nextNonEquivalentForValue(_ value: UInt64) -> UInt64 {
-        return lowestEquivalentForValue(value) + sizeOfEquivalentRangeForValue(value)
+        lowestEquivalentForValue(value) + sizeOfEquivalentRangeForValue(value)
     }
 
     func valueFromIndex(_ index: Int) -> UInt64 {
@@ -1189,7 +1193,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
     }
 
     private func valueFrom(bucketIndex: Int, subBucketIndex: Int) -> UInt64 {
-        return UInt64(subBucketIndex) << (bucketIndex + Int(unitMagnitude))
+        UInt64(subBucketIndex) << (bucketIndex + Int(unitMagnitude))
     }
 
     @usableFromInline
@@ -1206,17 +1210,17 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
         // Calculates the number of powers of two by which the value is greater than the biggest value that fits in
         // bucket 0. This is the bucket index since each successive bucket can hold a value 2x greater.
         // The mask maps small values to bucket 0
-        return Int(leadingZeroCountBase) - (value | subBucketMask).leadingZeroBitCount
+        Int(leadingZeroCountBase) - (value | subBucketMask).leadingZeroBitCount
     }
 
-   func subBucketIndexForValue(_ value: UInt64, bucketIndex: Int) -> Int {
+    func subBucketIndexForValue(_ value: UInt64, bucketIndex: Int) -> Int {
         // For ``bucketIndex`` 0, this is just value, so it may be anywhere in 0 to ``subBucketCount``.
         // For other bucketIndex, this will always end up in the top half of subBucketCount: assume that for some bucket
         // `k` > 0, this calculation will yield a value in the bottom half of 0 to ``subBucketCount``. Then, because of how
         // buckets overlap, it would have also been in the top half of bucket `k-1`, and therefore would have
         // returned `k-1` in ``bucketIndexForValue()``. Since we would then shift it one fewer bits here, it would be twice as big,
         // and therefore in the top half of ``subBucketCount``.
-        return Int(value >> (bucketIndex + Int(unitMagnitude)))
+        Int(value >> (bucketIndex + Int(unitMagnitude)))
     }
 
     private func countsIndexFor(bucketIndex: Int, subBucketIndex: Int) -> Int {
@@ -1247,7 +1251,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
         if value > maxValue {
             maxValue = value
         }
-        if value < minNonZeroValue && value != 0 {
+        if value < minNonZeroValue, value != 0 {
             minNonZeroValue = value
         }
     }
@@ -1285,7 +1289,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
      * value if we consider the sub-bucket length to be halved.
      */
     static func countsArrayLengthFor(bucketCount: Int, subBucketHalfCount: Int) -> Int {
-        return (bucketCount + 1) * subBucketHalfCount
+        (bucketCount + 1) * subBucketHalfCount
     }
 }
 
@@ -1300,17 +1304,17 @@ extension Histogram: Equatable {
      */
     public static func == (lhs: Histogram, rhs: Histogram) -> Bool {
         if lhs.lowestDiscernibleValue != rhs.lowestDiscernibleValue ||
-           lhs.numberOfSignificantValueDigits != rhs.numberOfSignificantValueDigits ||
-           lhs.totalCount != rhs.totalCount ||
-           lhs.max != rhs.max ||
-           lhs.minNonZero != rhs.minNonZero {
+            lhs.numberOfSignificantValueDigits != rhs.numberOfSignificantValueDigits ||
+            lhs.totalCount != rhs.totalCount ||
+            lhs.max != rhs.max ||
+            lhs.minNonZero != rhs.minNonZero {
             return false
         }
 
         // 2 histograms may be equal but have different underlying array sizes. This can happen for instance due to
         // resizing.
         if lhs.counts.count == rhs.counts.count {
-            for i in 0..<lhs.counts.count {
+            for i in 0 ..< lhs.counts.count {
                 // swiftlint:disable:next for_where
                 if lhs.counts[i] != rhs.counts[i] {
                     return false
@@ -1339,7 +1343,7 @@ extension Histogram: TextOutputStreamable {
      *
      * - Parameter to: The target stream.
      */
-    public func write<Target: TextOutputStream>(to: inout Target) {
+    public func write(to: inout some TextOutputStream) {
         outputPercentileDistribution(to: &to, outputValueUnitScalingRatio: 1.0)
     }
 }

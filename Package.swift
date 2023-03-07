@@ -7,20 +7,22 @@ let package = Package(
     name: "package-histogram",
     platforms: [
         // specify each minimum deployment requirement,
-        //otherwise the platform default minimum is used.
-       .macOS(.v10_15),
-       .iOS(.v13),
-       .tvOS(.v13),
-       .watchOS(.v6)
+        // otherwise the platform default minimum is used.
+        .macOS(.v10_15),
+        .iOS(.v13),
+        .tvOS(.v13),
+        .watchOS(.v6)
     ],
     products: [
         // Products define the executables and libraries a package produces, and make them visible to other packages.
         .library(
             name: "Histogram",
-            targets: ["Histogram"]),
+            targets: ["Histogram"]
+        ),
         .executable(
             name: "HistogramExample",
-            targets: ["HistogramExample"]),
+            targets: ["HistogramExample"]
+        ),
     ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
@@ -34,15 +36,18 @@ let package = Package(
             name: "Histogram",
             dependencies: [
                 .product(name: "Numerics", package: "swift-numerics"),
-            ]),
+            ]
+        ),
         .executableTarget(
             name: "HistogramExample",
-            dependencies: ["Histogram"]),
+            dependencies: ["Histogram"]
+        ),
         .testTarget(
             name: "HistogramTests",
             dependencies: [
                 "Histogram",
                 .product(name: "Numerics", package: "swift-numerics"),
-            ]),
+            ]
+        ),
     ]
 )
