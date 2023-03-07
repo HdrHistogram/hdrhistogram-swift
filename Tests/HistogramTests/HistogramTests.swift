@@ -242,6 +242,20 @@ final class HistogramTests: XCTestCase {
         }
     }
 
+    func testIterationValueHashable() throws {
+        var h = Histogram<UInt64>(lowestDiscernibleValue: 1, highestTrackableValue: UInt64.max, numberOfSignificantValueDigits: .two)
+
+        for value in 1...50 {
+            h.record(UInt64(value))
+        }
+
+        var cached:[Histogram<UInt64>.IterationValue:UInt64] = [:]
+        for iv in h.linearBucketValues(valueUnitsPerBucket: 5) {
+            cached[iv] = iv.count
+        }
+        XCTAssertEqual(cached.count, 11)
+    }
+
     func testRecordValueWithExpectedInterval() throws {
         var histogram = Histogram<UInt64>(highestTrackableValue: Self.highestTrackableValue, numberOfSignificantValueDigits: Self.numberOfSignificantValueDigits)
 
