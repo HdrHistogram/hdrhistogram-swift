@@ -8,7 +8,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 //
 
-// swiftlint:disable identifier_name
+// swiftlint:disable identifier_name todo
 
 @testable import Histogram
 import XCTest
@@ -55,7 +55,7 @@ final class HistogramAutosizingTests: XCTestCase {
     func testHistogramAutoSizing() {
         var histogram = Histogram<UInt64>(numberOfSignificantValueDigits: .three)
 
-        for i in 0..<63 {
+        for i in 0 ..< 63 {
             histogram.record(UInt64(1) << i)
         }
 
@@ -65,23 +65,23 @@ final class HistogramAutosizingTests: XCTestCase {
 
     func testAutoSizingAdd() throws {
         var histogram1 = Histogram<UInt64>(numberOfSignificantValueDigits: .two)
-    //    let histogram2 = Histogram<UInt64>(numberOfSignificantValueDigits: .two)
+        //    let histogram2 = Histogram<UInt64>(numberOfSignificantValueDigits: .two)
 
         histogram1.record(1_000)
         histogram1.record(1_000_000_000)
 
-        // FIXME
+        // FIXME:
         throw XCTSkip("Histogram.add() is not implemented yet")
-        //histogram2.add(histogram1)
+        // histogram2.add(histogram1)
 
-   //     XCTAssert(histogram2.valuesAreEquivalent(histogram2.max, 1_000_000_000),
-   //               "Max should be equivalent to 1_000_000_000")
+        //     XCTAssert(histogram2.valuesAreEquivalent(histogram2.max, 1_000_000_000),
+        //               "Max should be equivalent to 1_000_000_000")
     }
 
     func testAutoSizingAcrossContinuousRange() {
         var histogram = Histogram<UInt64>(numberOfSignificantValueDigits: .two)
 
-        for i: UInt64 in 0..<10_000_000 {
+        for i: UInt64 in 0 ..< 10_000_000 {
             histogram.record(i)
         }
     }
