@@ -9,6 +9,12 @@
 ## User settings
 xcuserdata/
 
+## Benchmark data
+.benchmarkBaselines/
+
+## DocC build directories
+**/.docc-build/
+
 ## compatibility with Xcode 8 and earlier (ignoring not required starting Xcode 9)
 *.xcscmblueprint
 *.xccheckout
