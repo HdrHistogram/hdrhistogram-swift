@@ -326,6 +326,14 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
      *            in the histogram are either larger than or equivalent to. Returns 0 if no recorded values exist.
      */
     public func valueAtPercentile(_ percentile: Double) -> UInt64 {
+        guard percentile != 0.0 else {
+            return self.min
+        }
+
+        guard percentile < 100.0 else {
+            return maxRecorded
+        }
+
         // Truncate to 0..100%, and remove 1 ulp to avoid roundoff overruns into next bucket when we
         // subsequently round up to the nearest integer:
         let requestedPercentile = Swift.min(Swift.max(percentile.nextDown, 0.0), 100.0)
@@ -342,9 +350,8 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
             totalToCurrentIndex += UInt64(counts[i])
             if totalToCurrentIndex >= countAtPercentile {
                 let valueAtIndex = valueFromIndex(i)
-                return (percentile == 0.0) ?
-                    lowestEquivalentForValue(valueAtIndex) :
-                    highestEquivalentForValue(valueAtIndex)
+                let returnValue = highestEquivalentForValue(valueAtIndex)
+                return Swift.max(Swift.min(returnValue, maxRecorded), self.min)
             }
         }
         return 0
@@ -435,7 +442,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
     }
 
     /**
-     * Get the lowest recorded value level in the histogram.
+     * Get the lowest recorded value in the histogram.
      *
      * If the histogram has no recorded values, the value returned is undefined.
      *
@@ -446,11 +453,24 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
     }
 
     /**
-     * Get the highest recorded value level in the histogram.
+     * Get the highest recorded value in the histogram.
      *
      * If the histogram has no recorded values, the value returned is undefined.
      *
      * - Returns: The maximum value recorded in the histogram.
+     */
+    public var maxRecorded: UInt64 {
+        maxValue
+    }
+
+    /**
+     * Get the highest recorded value level in the histogram.
+     *
+     * If the histogram has no recorded values, the value returned is undefined.
+     *
+     * NB this can be larger than the maximum recorded value due to precision.
+     *
+     * - Returns: The maximum value level recorded in the histogram.
      */
     public var max: UInt64 {
         maxValue == 0 ? 0 : highestEquivalentForValue(maxValue)
@@ -460,6 +480,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
      * Get the lowest recorded non-zero value level in the histogram.
      *
      * If the histogram has no recorded values, the value returned is undefined.
+     * NB this can be smaller than the minimum recorded value due to precision.
      *
      * - Returns: The lowest recorded non-zero value level in the histogram.
      */
@@ -1347,3 +1368,5 @@ extension Histogram: TextOutputStreamable {
         outputPercentileDistribution(to: &to, outputValueUnitScalingRatio: 1.0)
     }
 }
+
+// swiftlint:enable file_length type_body_length line_length identifier_name

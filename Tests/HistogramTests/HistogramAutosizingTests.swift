@@ -8,7 +8,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 //
 
-// swiftlint:disable identifier_name todo
+// swiftlint:disable todo
 
 @testable import Histogram
 import XCTest
@@ -86,3 +86,5 @@ final class HistogramAutosizingTests: XCTestCase {
         }
     }
 }
+
+// swiftlint:enable todo

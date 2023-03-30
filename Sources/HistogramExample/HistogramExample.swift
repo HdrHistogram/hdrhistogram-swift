@@ -53,3 +53,5 @@ enum HistogramExample {
         print("\n", histogram)
     }
 }
+
+// swiftlint:enable identifier_name

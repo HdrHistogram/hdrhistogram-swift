@@ -491,3 +491,5 @@ final class HistogramDataAccessTests: XCTestCase {
         XCTAssertEqual(4_104, snapshots.count)
     }
 }
+
+// swiftlint:enable file_length identifier_name line_length trailing_comma
