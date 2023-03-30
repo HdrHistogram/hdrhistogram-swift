@@ -20,6 +20,16 @@ final class HistogramTests: XCTestCase {
     private static let numberOfSignificantValueDigits = SignificantDigits.three
     private static let value: UInt64 = 4
 
+    func testPercentiles() throws {
+        var histogram = Histogram<UInt64>(lowestDiscernibleValue: 1, highestTrackableValue: 3_600_000_000, numberOfSignificantValueDigits: .three)
+        for _ in 0..<90 {
+            histogram.record(1000_001)
+        }
+        XCTAssertEqual(histogram.minNonZeroValue, 1000_001)
+        XCTAssertEqual(histogram.min, 1000_001)
+        XCTAssertEqual(histogram.minNonZeroValue, histogram.valueAtPercentile(0.0))
+    }
+
     func testCreate() throws {
         let h = Histogram<UInt64>(lowestDiscernibleValue: 1, highestTrackableValue: 3_600_000_000, numberOfSignificantValueDigits: .three)
         XCTAssertEqual(h.counts.count, 23_552)
