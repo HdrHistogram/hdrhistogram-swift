@@ -20,6 +20,8 @@ final class HistogramTests: XCTestCase {
     private static let numberOfSignificantValueDigits = SignificantDigits.three
     private static let value: UInt64 = 4
 
+    // This is a check for valueAtPercentiles that would return 999936
+    // instead of 1000_001 for p0 (which would return lowestEquivalentForValue instead of min)
     func testPercentiles() throws {
         var histogram = Histogram<UInt64>(lowestDiscernibleValue: 1, highestTrackableValue: 3_600_000_000, numberOfSignificantValueDigits: .three)
         for _ in 0..<90 {
