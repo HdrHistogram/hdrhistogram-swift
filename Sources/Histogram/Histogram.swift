@@ -1348,3 +1348,5 @@ extension Histogram: TextOutputStreamable {
         outputPercentileDistribution(to: &to, outputValueUnitScalingRatio: 1.0)
     }
 }
+
+// swiftlint:enable file_length type_body_length line_length identifier_name

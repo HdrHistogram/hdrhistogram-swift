@@ -24,11 +24,11 @@ final class HistogramTests: XCTestCase {
     // instead of 1000_001 for p0 (which would return lowestEquivalentForValue instead of min)
     func testPercentiles() throws {
         var histogram = Histogram<UInt64>(lowestDiscernibleValue: 1, highestTrackableValue: 3_600_000_000, numberOfSignificantValueDigits: .three)
-        for _ in 0..<90 {
-            histogram.record(1000_001)
+        for _ in 0 ..< 90 {
+            histogram.record(1_000_001)
         }
-        XCTAssertEqual(histogram.minNonZeroValue, 1000_001)
-        XCTAssertEqual(histogram.min, 1000_001)
+        XCTAssertEqual(histogram.minNonZeroValue, 1_000_001)
+        XCTAssertEqual(histogram.min, 1_000_001)
         XCTAssertEqual(histogram.minNonZeroValue, histogram.valueAtPercentile(0.0))
     }
 
@@ -516,3 +516,5 @@ final class HistogramTests: XCTestCase {
         XCTAssertEqual(computedMaxValue, h.maxValue)
     }
 }
+
+// swiftlint:enable file_length identifier_name line_length
