@@ -22,7 +22,8 @@ final class HistogramTests: XCTestCase {
 
     // This is a check for valueAtPercentiles that would return 999936
     // instead of 1000_001 for p0 (which would return lowestEquivalentForValue instead of min)
-    func testPercentiles() throws {
+    // and it would return 1000447 for p100, instead of max
+    func testPercentilesMinMax() throws {
         var histogram = Histogram<UInt64>(lowestDiscernibleValue: 1, highestTrackableValue: 3_600_000_000, numberOfSignificantValueDigits: .three)
         for _ in 0 ..< 90 {
             histogram.record(1_000_001)
@@ -30,6 +31,8 @@ final class HistogramTests: XCTestCase {
         XCTAssertEqual(histogram.minNonZeroValue, 1_000_001)
         XCTAssertEqual(histogram.min, 1_000_001)
         XCTAssertEqual(histogram.minNonZeroValue, histogram.valueAtPercentile(0.0))
+        XCTAssertEqual(histogram.maxValue, 1_000_001)
+        XCTAssertEqual(histogram.maxValue, histogram.valueAtPercentile(100.0))
     }
 
     func testCreate() throws {
