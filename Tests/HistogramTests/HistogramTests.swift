@@ -32,7 +32,7 @@ final class HistogramTests: XCTestCase {
         XCTAssertEqual(histogram.min, 1_000_001)
         XCTAssertEqual(histogram.min, histogram.valueAtPercentile(0.0))
         XCTAssertEqual(histogram.maxRecorded, 1_000_001)
-        XCTAssertEqual(histogram.maxValue, histogram.valueAtPercentile(100.0))
+        XCTAssertEqual(histogram.maxRecorded, histogram.valueAtPercentile(100.0))
     }
 
     func testCreate() throws {
