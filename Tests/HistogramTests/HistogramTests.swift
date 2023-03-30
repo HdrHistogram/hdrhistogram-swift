@@ -31,7 +31,7 @@ final class HistogramTests: XCTestCase {
         XCTAssertEqual(histogram.minNonZeroValue, 1_000_001)
         XCTAssertEqual(histogram.min, 1_000_001)
         XCTAssertEqual(histogram.minNonZeroValue, histogram.valueAtPercentile(0.0))
-        XCTAssertEqual(histogram.maxValue, 1_000_001)
+        XCTAssertEqual(histogram.maxRecorded, 1_000_001)
         XCTAssertEqual(histogram.maxValue, histogram.valueAtPercentile(100.0))
     }
 
