@@ -86,4 +86,5 @@ final class HistogramAutosizingTests: XCTestCase {
         }
     }
 }
+
 // swiftlint:enable todo

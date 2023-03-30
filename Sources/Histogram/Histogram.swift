@@ -331,9 +331,9 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
         }
 
         guard percentile < 100.0 else {
-            return self.maxRecorded
+            return maxRecorded
         }
-        
+
         // Truncate to 0..100%, and remove 1 ulp to avoid roundoff overruns into next bucket when we
         // subsequently round up to the nearest integer:
         let requestedPercentile = Swift.min(Swift.max(percentile.nextDown, 0.0), 100.0)
@@ -351,7 +351,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
             if totalToCurrentIndex >= countAtPercentile {
                 let valueAtIndex = valueFromIndex(i)
                 let returnValue = highestEquivalentForValue(valueAtIndex)
-                return Swift.max(Swift.min(returnValue, self.maxRecorded), self.min)
+                return Swift.max(Swift.min(returnValue, maxRecorded), self.min)
             }
         }
         return 0
