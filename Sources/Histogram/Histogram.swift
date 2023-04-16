@@ -1022,7 +1022,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
      *   - format: The output format.
      */
     public func outputPercentileDistribution(
-        to stream: inout some TextOutputStream,
+        to stream: inout TextOutputStream,
         outputValueUnitScalingRatio: Double,
         percentileTicksPerHalfDistance ticks: Int = 5,
         format: HistogramOutputFormat = .plainText
@@ -1291,6 +1291,113 @@ public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
     static func countsArrayLengthFor(bucketCount: Int, subBucketHalfCount: Int) -> Int {
         (bucketCount + 1) * subBucketHalfCount
     }
+    
+    // TODO: extension BinaryEncodable
+    
+    private static func offsetWithAlignment<T>(_ t: T.Type, offset: Int) -> Int {
+        // FIXME: read unaligned (require swift 5.7?)
+        let typeAlignment = MemoryLayout<T>.alignment
+        let typeAlignmentDiff = offset % typeAlignment;
+        if (typeAlignmentDiff == 0) {
+            return offset
+        }
+        return offset + (typeAlignment - typeAlignmentDiff)
+    }
+    
+    private static func decodeVar<T>(_ t: T.Type, data: UnsafeRawPointer, offset: inout Int) -> T {
+        offset = offsetWithAlignment(t, offset: offset)
+        let v = data.advanced(by: offset).load(as: T.self)
+        
+        offset += MemoryLayout<T>.stride
+        return v
+    }
+    
+    public init?(data: UnsafeRawPointer) {
+        var offset: Int = 0
+
+        let curTypeDescr = String(describing: Count.self)
+        
+        let wasTypeDescr = Self.decodeVar(String.self, data: data, offset: &offset)
+        if (wasTypeDescr != curTypeDescr) {
+            return nil
+        }
+        autoResize = Self.decodeVar(Bool.self, data: data, offset: &offset)
+        bucketCount = Self.decodeVar(Int.self, data: data, offset: &offset)
+
+        leadingZeroCountBase = Self.decodeVar(UInt8.self, data: data, offset: &offset)
+        lowestDiscernibleValue = Self.decodeVar(UInt64.self, data: data, offset: &offset)
+        unitMagnitude = Self.decodeVar(UInt8.self, data: data, offset: &offset)
+        minNonZeroValue = Self.decodeVar(UInt64.self, data: data, offset: &offset)
+        numberOfSignificantValueDigits = Self.decodeVar(SignificantDigits.self, data: data, offset: &offset)
+        subBucketHalfCountMagnitude = Self.decodeVar(UInt8.self, data: data, offset: &offset)
+
+        maxValue = Self.decodeVar(UInt64.self, data: data, offset: &offset)
+        _totalCount = Self.decodeVar(UInt64.self, data: data, offset: &offset)
+        subBucketMask = Self.decodeVar(UInt64.self, data: data, offset: &offset)
+        highestTrackableValue = Self.decodeVar(UInt64.self, data: data, offset: &offset)
+        
+        do {
+            let countSize = Self.decodeVar(Int.self, data: data, offset: &offset)
+            counts = [Count](repeating: 0, count: countSize)
+            offset = Self.offsetWithAlignment(Count.self, offset: offset)
+//            for index in 0..<countSize {
+//                counts[index] = data.advanced(by: offset).load(as: Count.self)
+//                offset += MemoryLayout<Count>.stride
+//            }
+            let arrPtr = data.advanced(by: offset).bindMemory(to: Count.self, capacity: countSize)
+            let arrBuffer = UnsafeBufferPointer(start: arrPtr, count: countSize)
+            counts = Array(arrBuffer)
+            offset += (countSize * MemoryLayout<Count>.size)
+        }
+//
+//        let retData = Data(bytes: data, count: offset)
+//        data.deallocate()
+
+//        return Histogram<Count>(
+//            autoResize:
+//        )
+    }
+    
+    private static func encodeVar<T>(data: UnsafeMutableRawPointer, offset: inout Int, v: T) {
+        offset = Self.offsetWithAlignment(T.self, offset: offset)
+        data.advanced(by: offset).storeBytes(of: v, as: T.self)
+        offset += MemoryLayout<T>.stride
+    }
+    
+    public func encodableSize() -> Int {
+        return 112 + MemoryLayout<Count>.stride * counts.count
+    }
+    
+    public func encode(data: UnsafeMutableRawPointer) -> Int { // return bytes encoded
+//        let data = UnsafeMutableRawPointer.allocate(byteCount: 512 + counts.count * MemoryLayout<Count>.size, alignment: 1)
+        
+        var offset: Int = 0
+        
+        let typeDescr = String(describing: Count.self)
+        
+        Self.encodeVar(data: data, offset: &offset, v: typeDescr)
+        Self.encodeVar(data: data, offset: &offset, v: autoResize)
+        Self.encodeVar(data: data, offset: &offset, v: bucketCount)
+        
+        
+        Self.encodeVar(data: data, offset: &offset, v: leadingZeroCountBase)
+        Self.encodeVar(data: data, offset: &offset, v: lowestDiscernibleValue)
+        Self.encodeVar(data: data, offset: &offset, v: unitMagnitude)
+        Self.encodeVar(data: data, offset: &offset, v: minNonZeroValue)
+        Self.encodeVar(data: data, offset: &offset, v: numberOfSignificantValueDigits)
+        Self.encodeVar(data: data, offset: &offset, v: subBucketHalfCountMagnitude)
+        
+        Self.encodeVar(data: data, offset: &offset, v: maxValue)
+        Self.encodeVar(data: data, offset: &offset, v: _totalCount)
+        Self.encodeVar(data: data, offset: &offset, v: subBucketMask)
+        Self.encodeVar(data: data, offset: &offset, v: highestTrackableValue)
+        
+        Self.encodeVar(data: data, offset: &offset, v: counts.count)
+        for count in counts {
+            Self.encodeVar(data: data, offset: &offset, v: count)
+        }
+        return offset
+    }
 }
 
 // MARK: Histogram equality.
@@ -1333,17 +1440,19 @@ extension Histogram: Equatable {
 
         return true
     }
+    
+    
 }
 
 // MARK: Histogram output.
-
-extension Histogram: TextOutputStreamable {
-    /**
-     * Writes a textual representation of this histogram into the given output stream.
-     *
-     * - Parameter to: The target stream.
-     */
-    public func write(to: inout some TextOutputStream) {
-        outputPercentileDistribution(to: &to, outputValueUnitScalingRatio: 1.0)
-    }
-}
+//
+//extension Histogram: TextOutputStreamable {
+//    /**
+//     * Writes a textual representation of this histogram into the given output stream.
+//     *
+//     * - Parameter to: The target stream.
+//     */
+//    public func write(to: inout some TextOutputStream) {
+//        outputPercentileDistribution(to: &to, outputValueUnitScalingRatio: 1.0)
+//    }
+//}

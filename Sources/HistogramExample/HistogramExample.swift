@@ -9,6 +9,7 @@
 
 // swiftlint:disable identifier_name
 
+import Foundation
 import Histogram
 
 @main
@@ -28,7 +29,9 @@ enum HistogramExample {
 
         // record value with correction for co-ordinated omission
         histogram.recordCorrectedValue(1_000, expectedInterval: 100)
-
+        
+//        histogram.encode();
+        
         // iterate using percentile iterator
         for pv in histogram.percentiles(ticksPerHalfDistance: 1) {
             print("Percentile: \(pv.percentile), Value: \(pv.value)")
@@ -51,5 +54,42 @@ enum HistogramExample {
         print("stddev: \(histogram.stdDeviation)")
 
         print("\n", histogram)
+        
+        let buf = UnsafeMutableRawPointer.allocate(byteCount: histogram.encodableSize(), alignment: 1)
+        
+        let bytesEncoded = histogram.encode(data: buf)
+        print("bytesEncoded: \(bytesEncoded)")
+        let raw = buf.bindMemory(to: UInt8.self, capacity: bytesEncoded)
+        
+        let data = Data(bytes: raw, count: bytesEncoded)
+        let file = URL(fileURLWithPath: FileManager.default.currentDirectoryPath, isDirectory: true).appendingPathComponent("output.hist")
+        try? data.write(to: file)
+        
+        let fileHandle = try! FileHandle(forReadingFrom: file)
+        
+        let newData = fileHandle.readData(ofLength: bytesEncoded)
+        assert(!newData.isEmpty)
+        
+        newData.withUnsafeBytes({ ptr in
+            print("New data decoding")
+            assert(ptr.baseAddress != nil)
+            let newBuf = UnsafeRawPointer(ptr.baseAddress!)
+            print("Buf: \(buf)")
+            print("newBuf: \(newBuf)")
+            let newHist = Histogram<UInt64>(data: newBuf)
+            newBuf.deallocate()
+            assert(newHist == histogram)
+        })
+        
+        fileHandle.close()
+//
+//
+//
+//
+//        buf.deallocate()
+        
+        
+        
+        
     }
 }
