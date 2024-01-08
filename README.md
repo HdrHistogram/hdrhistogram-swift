@@ -36,7 +36,7 @@ as most of the concepts translate directly to the Swift port. Additional Thanks 
 To add to your project:
 ```
 dependencies: [
-    .package(url: "https://github.com/ordo-one/package-histogram", .upToNextMajor(from: "0.0.1")),
+    .package(url: "https://github.com/HdrHistogram/hdrhistogram-swift", .upToNextMajor(from: "0.1.0"))
 ]
 ```
 
@@ -46,7 +46,7 @@ and then add the dependency to your target, e.g.:
 .executableTarget(
   name: "MyExecutableTarget",
   dependencies: [
-  .product(name: "Histogram", package: "package-histogram")
+  .product(name: "Histogram", package: "hdrhistogram-swift")
 ]),
 ```
 ## Usage
