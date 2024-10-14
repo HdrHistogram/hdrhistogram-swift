@@ -16,7 +16,12 @@ jobs:
     - name: Ubuntu deps
       if: ${{ runner.os == 'Linux' }}
       run: |
-        sudo apt-get install -y libjemalloc-dev llvm-15
+        sudo apt-get install -y libjemalloc-dev
+
+    - uses: khlopko/setup-swift@bfd61cbd14eeef55a27afc45138b61ced7174839
+
+    - name: Swift version
+      run: swift --version
 
     - name: Start consul
       uses: ./.github/actions/consul-start
@@ -41,6 +46,6 @@ jobs:
     - name: Upload codecov
       uses: codecov/codecov-action@v4
       with: 
-        token: ${{ secrets.CODECOV_REPO_TOKEN }} 
+        token: ${{ secrets.CODECOV_REPO_TOKEN }}
         files: info.lcov
         fail_ci_if_error: true
