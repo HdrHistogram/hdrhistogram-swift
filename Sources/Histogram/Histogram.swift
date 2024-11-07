@@ -10,7 +10,12 @@
 
 // swiftlint:disable file_length type_body_length line_length identifier_name
 
-import Foundation
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#endif
+
 import Numerics
 
 /**
@@ -1366,6 +1371,32 @@ extension Histogram: TextOutputStreamable {
      */
     public func write(to: inout some TextOutputStream) {
         outputPercentileDistribution(to: &to, outputValueUnitScalingRatio: 1.0)
+    }
+}
+
+private extension String {
+    // Replacement for Foundation formatting routine.
+    // Loosly Based on example code found on
+    // https://developer.apple.com/documentation/swift/using-imported-c-functions-in-swift
+    // but using vsnprintf instead of vasprintf due to the latter being unavailabie in Glibc.
+    //
+    init(format: String, _ arguments: any CVarArg...) {
+        guard let value: String = withVaList(arguments, { va_list in
+            let bufferSize = 1_024
+            var buffer = [Int8](repeating: 0, count: bufferSize)
+            let valid = buffer.withUnsafeMutableBytes { ptr in
+                // vsnprintf guarantees not to write more than bufferSize - 1 characters plus a final null byte.
+                // Negative value indicates some failure; positive values indicate a valid null-terminated
+                // string.
+                0..<bufferSize ~= format.withCString {
+                    Int(vsnprintf(ptr.baseAddress, bufferSize, $0, va_list))
+                }
+            }
+            return valid ? String(validatingUTF8: buffer) : ""
+        }) else {
+            fatalError("Invalid String format for given arguments")
+        }
+        self = value
     }
 }
 
