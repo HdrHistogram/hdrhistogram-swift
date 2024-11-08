@@ -36,7 +36,7 @@ final class HistogramDataAccessTests: XCTestCase {
         numberOfSignificantValueDigits: numberOfSignificantValueDigits
     )
 
-    override class func setUp() {
+    override static func setUp() {
         // Log hypothetical scenario: 100 seconds of "perfect" 1msec results, sampled
         // 100 times per second (10,000 results), followed by a 100 second pause with
         // a single (100 second) recorded result. Recording is done indicating an expected

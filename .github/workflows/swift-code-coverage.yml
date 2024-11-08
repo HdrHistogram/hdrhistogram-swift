@@ -11,17 +11,21 @@ jobs:
     runs-on: [ubuntu-22.04]
     timeout-minutes: 60
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Ubuntu deps
       if: ${{ runner.os == 'Linux' }}
       run: |
-        sudo apt-get install -y libjemalloc-dev llvm-15
+        sudo apt-get install -y libjemalloc-dev
+
+    - uses: swift-actions/setup-swift@v2
+
+    - name: Swift version
+      run: swift --version
 
     - name: Run tests
       continue-on-error: true
-      run: |
-        [ -d Tests ] && swift test --parallel --enable-code-coverage
+      run: swift test --parallel --enable-code-coverage
 
     - name: Export code coverage
       run: |
@@ -32,12 +36,12 @@ jobs:
          fi
 
          if [ -f ${xctest_binary} ]; then
-             llvm-cov-15 export -format="lcov" ${xctest_binary} -instr-profile .build/debug/codecov/default.profdata > info.lcov
+             llvm-cov export -format="lcov" ${xctest_binary} -instr-profile .build/debug/codecov/default.profdata > info.lcov
          fi
 
     - name: Upload codecov
-      uses: codecov/codecov-action@v2
+      uses: codecov/codecov-action@v4
       with: 
-        token: ${{ secrets.CODECOV_REPO_TOKEN }} 
+        token: ${{ secrets.CODECOV_REPO_TOKEN }}
         files: info.lcov
         fail_ci_if_error: true
