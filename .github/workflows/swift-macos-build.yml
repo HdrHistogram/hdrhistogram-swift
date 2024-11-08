@@ -45,9 +45,7 @@ jobs:
       run: swift build
 
     - name: Run tests
-      run: |
-        [ -d Tests ] && swift test --parallel
+      run: swift test --parallel
 
     - name: Run tests (release)
-      run: |
-        [ -d Tests ] && swift test -c release --parallel
+      run: swift test -c release --parallel
