@@ -5,7 +5,7 @@ on:
   push:
     branches: [ main ]
   pull_request:
-    branches: [ main, next ]
+    branches: [ main ]
 
 jobs:
   address-sanitizer:
@@ -31,9 +31,6 @@ jobs:
 
     - uses: actions/checkout@v4
 
-    - name: Start consul
-      uses: ./.github/actions/consul-start
-
     - name: Swift version
       run: swift --version
 
@@ -43,9 +40,9 @@ jobs:
 
     - name: Run address sanitizer
       run: swift test --sanitize=address
-      
+
     - name: Clean before release build sanitizier
       run: swift package clean
-      
+
     - name: Run address sanitizer on release build
       run: swift test --sanitize=address -c release -Xswiftc -enable-testing

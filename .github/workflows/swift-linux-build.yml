@@ -5,7 +5,7 @@ on:
   push:
     branches: [ main ]
   pull_request:
-    branches: [ main, next ]
+    branches: [ main ]
 
 jobs:
   build-linux:
@@ -24,10 +24,7 @@ jobs:
       with:
         swift-version: ${{ matrix.swift }}
 
-    - uses: actions/checkout@v4    
-
-    - name: Start consul
-      uses: ./.github/actions/consul-start
+    - uses: actions/checkout@v4
 
     - name: Ubuntu deps
       if: ${{ runner.os == 'Linux' }}
@@ -42,6 +39,4 @@ jobs:
 
     - name: Run tests
       run: |
-        if [ -d Tests ]; then
-          swift test --parallel
-        fi
+        [ -d Tests ] && swift test --parallel
