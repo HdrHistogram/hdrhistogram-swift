@@ -40,3 +40,7 @@ jobs:
     - name: Run tests
       run: |
         [ -d Tests ] && swift test --parallel
+
+    - name: Run tests (release)
+      run: |
+        [ -d Tests ] && swift test -c release --parallel
