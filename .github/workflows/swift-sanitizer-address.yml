@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        os: [macos-15]
 
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
@@ -29,7 +29,7 @@ jobs:
       run: |
         sudo apt-get install -y libjemalloc-dev
 
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Swift version
       run: swift --version
@@ -40,9 +40,9 @@ jobs:
 
     - name: Run address sanitizer
       run: swift test --sanitize=address
-      
+
     - name: Clean before release build sanitizier
       run: swift package clean
-      
+
     - name: Run address sanitizer on release build
       run: swift test --sanitize=address -c release -Xswiftc -enable-testing

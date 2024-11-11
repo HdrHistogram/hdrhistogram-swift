@@ -1,4 +1,4 @@
-name: Swift macOS build
+name: macOS build
 
 on:
   workflow_dispatch:
@@ -6,20 +6,21 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-  
+
 jobs:
   build-macos:
     timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-13]
-        swift: ["5.7", "5.8"]
+        os: [macos-15]
+#        swift: [ "5.10", "6.0" ]
 
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: fwal/setup-swift@v1.24.0
+    - uses: swift-actions/setup-swift@v2
+      if: ${{ false }}
       with:
         swift-version: ${{ matrix.swift }}
 
@@ -29,18 +30,22 @@ jobs:
         echo "/opt/homebrew/bin:/usr/local/bin" >> $GITHUB_PATH
         echo BENCHMARK_DISABLE_JEMALLOC=true >> $GITHUB_ENV
         brew install jemalloc
-    - uses: actions/checkout@v3
+
+    - uses: actions/checkout@v4
+
+    - name: GH auth
+      run: |
+        echo "machine api.github.com login ${{ secrets.GITHUB_TOKEN }} password x-oauth-basic" > $HOME/.netrc
+        cat ~/.netrc
+
     - name: Swift version
       run: swift --version
+
     - name: Build
       run: swift build
+
     - name: Run tests
-      run: |
-        if [ -d Tests ]; then
-          swift test --parallel
-        fi
+      run: swift test --parallel
+
     - name: Run tests (release)
-      run: |
-        if [ -d Tests ]; then
-          swift test -c release --parallel
-        fi
+      run: swift test -c release --parallel
