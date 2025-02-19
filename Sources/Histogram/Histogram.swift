@@ -21,14 +21,14 @@ import Numerics
 /**
  * Number of significant digits for values recorded in histogram.
  */
-public enum SignificantDigits: Int8, Codable {
+public enum SignificantDigits: Int8, Codable, Sendable {
     case zero, one, two, three, four, five
 }
 
 /**
  * Histogram output format.
  */
-public enum HistogramOutputFormat {
+public enum HistogramOutputFormat: Sendable {
     case plainText
     case csv
 }
@@ -56,7 +56,7 @@ public enum HistogramOutputFormat {
  * they are encountered. Note that recording calls that cause auto-resizing may take longer to execute, as resizing
  * incurs allocation and copying of internal data structures.
  */
-public struct Histogram<Count: FixedWidthInteger & Codable>: Codable {
+public struct Histogram<Count: FixedWidthInteger & Codable & Sendable>: Codable, Sendable {
     /// The lowest value that can be discerned (distinguished from 0) by the histogram.
     public let lowestDiscernibleValue: UInt64
 
