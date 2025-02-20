@@ -20,23 +20,23 @@ final class HistogramDataAccessTests: XCTestCase {
     private static let numberOfSignificantValueDigits = SignificantDigits.three
     private static let value: UInt64 = 4
 
-    private static var histogram = Histogram<UInt64>(highestTrackableValue: highestTrackableValue, numberOfSignificantValueDigits: numberOfSignificantValueDigits)
+    private var histogram = Histogram<UInt64>(highestTrackableValue: highestTrackableValue, numberOfSignificantValueDigits: numberOfSignificantValueDigits)
 
-    private static var scaledHistogram = Histogram<UInt64>(
+    private var scaledHistogram = Histogram<UInt64>(
         lowestDiscernibleValue: 1_000,
         highestTrackableValue: highestTrackableValue * 512,
         numberOfSignificantValueDigits: numberOfSignificantValueDigits
     )
 
-    private static var rawHistogram = Histogram<UInt64>(highestTrackableValue: highestTrackableValue, numberOfSignificantValueDigits: numberOfSignificantValueDigits)
+    private var rawHistogram = Histogram<UInt64>(highestTrackableValue: highestTrackableValue, numberOfSignificantValueDigits: numberOfSignificantValueDigits)
 
-    private static var scaledRawHistogram = Histogram<UInt64>(
+    private var scaledRawHistogram = Histogram<UInt64>(
         lowestDiscernibleValue: 1_000,
         highestTrackableValue: highestTrackableValue * 512,
         numberOfSignificantValueDigits: numberOfSignificantValueDigits
     )
 
-    override static func setUp() {
+    override func setUp() {
         // Log hypothetical scenario: 100 seconds of "perfect" 1msec results, sampled
         // 100 times per second (10,000 results), followed by a 100 second pause with
         // a single (100 second) recorded result. Recording is done indicating an expected
@@ -54,33 +54,33 @@ final class HistogramDataAccessTests: XCTestCase {
     }
 
     func testScalingEquivalence() {
-        XCTAssertEqual(Self.histogram.mean * 512, Self.scaledHistogram.mean, accuracy: Self.scaledHistogram.mean * 0.000001, "averages should be equivalent")
-        XCTAssertEqual(Self.histogram.totalCount, Self.scaledHistogram.totalCount, "total count should be the same")
-        XCTAssertEqual(Self.scaledHistogram.highestEquivalentForValue(Self.histogram.valueAtPercentile(99.0) * 512),
-                       Self.scaledHistogram.highestEquivalentForValue(Self.scaledHistogram.valueAtPercentile(99.0)), "99%'iles should be equivalent")
-        XCTAssertEqual(Self.scaledHistogram.highestEquivalentForValue(Self.histogram.max * 512), Self.scaledHistogram.max, "Max should be equivalent")
+        XCTAssertEqual(histogram.mean * 512, scaledHistogram.mean, accuracy: scaledHistogram.mean * 0.000001, "averages should be equivalent")
+        XCTAssertEqual(histogram.totalCount, scaledHistogram.totalCount, "total count should be the same")
+        XCTAssertEqual(scaledHistogram.highestEquivalentForValue(histogram.valueAtPercentile(99.0) * 512),
+                       scaledHistogram.highestEquivalentForValue(scaledHistogram.valueAtPercentile(99.0)), "99%'iles should be equivalent")
+        XCTAssertEqual(scaledHistogram.highestEquivalentForValue(histogram.max * 512), scaledHistogram.max, "Max should be equivalent")
     }
 
     func testTotalCount() {
         // The overflow value should count in the total count:
-        XCTAssertEqual(10_001, Self.rawHistogram.totalCount, "Raw total count is 10,001")
-        XCTAssertEqual(20_000, Self.histogram.totalCount, "Total count is 20,000")
+        XCTAssertEqual(10_001, rawHistogram.totalCount, "Raw total count is 10,001")
+        XCTAssertEqual(20_000, histogram.totalCount, "Total count is 20,000")
     }
 
     func testMax() {
-        XCTAssertTrue(Self.histogram.valuesAreEquivalent(100 * 1_000 * 1_000, Self.histogram.max))
+        XCTAssertTrue(histogram.valuesAreEquivalent(100 * 1_000 * 1_000, histogram.max))
     }
 
     func testMin() {
-        XCTAssertTrue(Self.histogram.valuesAreEquivalent(1_000, Self.histogram.min))
+        XCTAssertTrue(histogram.valuesAreEquivalent(1_000, histogram.min))
     }
 
     func testMean() {
         let expectedRawMean = ((10_000.0 * 1_000) + (1.0 * 100_000_000)) / 10_001 // direct avg. of raw results
         let expectedMean = (1_000.0 + 50_000_000.0) / 2 // avg. 1 msec for half the time, and 50 sec for other half
         // We expect to see the mean to be accurate to ~3 decimal points (~0.1%):
-        XCTAssertEqual(expectedRawMean, Self.rawHistogram.mean, accuracy: expectedRawMean * 0.001, "Raw mean is \(expectedRawMean) +/- 0.1%")
-        XCTAssertEqual(expectedMean, Self.histogram.mean, accuracy: expectedMean * 0.001, "Mean is \(expectedMean) +/- 0.1%")
+        XCTAssertEqual(expectedRawMean, rawHistogram.mean, accuracy: expectedRawMean * 0.001, "Raw mean is \(expectedRawMean) +/- 0.1%")
+        XCTAssertEqual(expectedMean, histogram.mean, accuracy: expectedMean * 0.001, "Mean is \(expectedMean) +/- 0.1%")
     }
 
     func testStdDeviation() {
@@ -97,9 +97,9 @@ final class HistogramDataAccessTests: XCTestCase {
         let expectedStdDev = (expectedSquareDeviationSum / 20_000).squareRoot()
 
         // We expect to see the standard deviations to be accurate to ~3 decimal points (~0.1%):
-        XCTAssertEqual(expectedRawStdDev, Self.rawHistogram.stdDeviation, accuracy: expectedRawStdDev * 0.001,
+        XCTAssertEqual(expectedRawStdDev, rawHistogram.stdDeviation, accuracy: expectedRawStdDev * 0.001,
                        "Raw standard deviation is \(expectedRawStdDev) +/- 0.1%")
-        XCTAssertEqual(expectedStdDev, Self.histogram.stdDeviation, accuracy: expectedStdDev * 0.001,
+        XCTAssertEqual(expectedStdDev, histogram.stdDeviation, accuracy: expectedStdDev * 0.001,
                        "Standard deviation is \(expectedStdDev) +/- 0.1%")
     }
 
@@ -140,33 +140,33 @@ final class HistogramDataAccessTests: XCTestCase {
     }
 
     func testValueAtPercentile() {
-        XCTAssertEqual(1_000.0, Double(Self.rawHistogram.valueAtPercentile(30.0)),
+        XCTAssertEqual(1_000.0, Double(rawHistogram.valueAtPercentile(30.0)),
                        accuracy: 1_000.0 * 0.001, "raw 30%'ile is 1 msec +/- 0.1%")
-        XCTAssertEqual(1_000.0, Double(Self.rawHistogram.valueAtPercentile(99.0)),
+        XCTAssertEqual(1_000.0, Double(rawHistogram.valueAtPercentile(99.0)),
                        accuracy: 1_000.0 * 0.001, "raw 99%'ile is 1 msec +/- 0.1%")
-        XCTAssertEqual(1_000.0, Double(Self.rawHistogram.valueAtPercentile(99.99)),
+        XCTAssertEqual(1_000.0, Double(rawHistogram.valueAtPercentile(99.99)),
                        accuracy: 1_000.0 * 0.001, "raw 99.99%'ile is 1 msec +/- 0.1%")
 
-        XCTAssertEqual(100_000_000.0, Double(Self.rawHistogram.valueAtPercentile(99.999)),
+        XCTAssertEqual(100_000_000.0, Double(rawHistogram.valueAtPercentile(99.999)),
                        accuracy: 100_000_000.0 * 0.001, "raw 99.999%'ile is 100 sec +/- 0.1%")
-        XCTAssertEqual(100_000_000.0, Double(Self.rawHistogram.valueAtPercentile(100.0)),
+        XCTAssertEqual(100_000_000.0, Double(rawHistogram.valueAtPercentile(100.0)),
                        accuracy: 100_000_000.0 * 0.001, "raw 100%'ile is 100 sec +/- 0.1%")
 
-        XCTAssertEqual(1_000.0, Double(Self.histogram.valueAtPercentile(30.0)),
+        XCTAssertEqual(1_000.0, Double(histogram.valueAtPercentile(30.0)),
                        accuracy: 1_000.0 * 0.001, "30%'ile is 1 msec +/- 0.1%")
-        XCTAssertEqual(1_000.0, Double(Self.histogram.valueAtPercentile(50.0)),
+        XCTAssertEqual(1_000.0, Double(histogram.valueAtPercentile(50.0)),
                        accuracy: 1_000.0 * 0.001, "50%'ile is 1 msec +/- 0.1%")
 
-        XCTAssertEqual(50_000_000.0, Double(Self.histogram.valueAtPercentile(75.0)),
+        XCTAssertEqual(50_000_000.0, Double(histogram.valueAtPercentile(75.0)),
                        accuracy: 50_000_000.0 * 0.001, "75%'ile is 50 sec +/- 0.1%")
 
-        XCTAssertEqual(80_000_000.0, Double(Self.histogram.valueAtPercentile(90.0)),
+        XCTAssertEqual(80_000_000.0, Double(histogram.valueAtPercentile(90.0)),
                        accuracy: 80_000_000.0 * 0.001, "90%'ile is 80 sec +/- 0.1%")
-        XCTAssertEqual(98_000_000.0, Double(Self.histogram.valueAtPercentile(99.0)),
+        XCTAssertEqual(98_000_000.0, Double(histogram.valueAtPercentile(99.0)),
                        accuracy: 98_000_000.0 * 0.001, "99%'ile is 98 sec +/- 0.1%")
-        XCTAssertEqual(100_000_000.0, Double(Self.histogram.valueAtPercentile(99.999)),
+        XCTAssertEqual(100_000_000.0, Double(histogram.valueAtPercentile(99.999)),
                        accuracy: 100_000_000.0 * 0.001, "99.999%'ile is 100 sec +/- 0.1%")
-        XCTAssertEqual(100_000_000.0, Double(Self.histogram.valueAtPercentile(100.0)),
+        XCTAssertEqual(100_000_000.0, Double(histogram.valueAtPercentile(100.0)),
                        accuracy: 100_000_000.0 * 0.001, "100%'ile is 100 sec +/- 0.1%")
     }
 
@@ -181,41 +181,41 @@ final class HistogramDataAccessTests: XCTestCase {
     }
 
     func testPercentileAtOrBelowValue() {
-        XCTAssertEqual(99.99, Self.rawHistogram.percentileAtOrBelowValue(5_000),
+        XCTAssertEqual(99.99, rawHistogram.percentileAtOrBelowValue(5_000),
                        accuracy: 0.0001, "Raw percentile at or below 5 msec is 99.99% +/- 0.0001")
-        XCTAssertEqual(50.0, Self.histogram.percentileAtOrBelowValue(5_000),
+        XCTAssertEqual(50.0, histogram.percentileAtOrBelowValue(5_000),
                        accuracy: 0.0001, "Percentile at or below 5 msec is 50% +/- 0.0001%")
-        XCTAssertEqual(100.0, Self.histogram.percentileAtOrBelowValue(100_000_000),
+        XCTAssertEqual(100.0, histogram.percentileAtOrBelowValue(100_000_000),
                        accuracy: 0.0001, "Percentile at or below 100 sec is 100% +/- 0.0001%")
     }
 
     func testCountWithinRange() {
-        XCTAssertEqual(10_000, Self.rawHistogram.count(within: 1_000 ... 1_000),
+        XCTAssertEqual(10_000, rawHistogram.count(within: 1_000 ... 1_000),
                        "Count of raw values between 1 msec and 1 msec is 1")
-        XCTAssertEqual(1, Self.rawHistogram.count(within: 5_000 ... 150_000_000),
+        XCTAssertEqual(1, rawHistogram.count(within: 5_000 ... 150_000_000),
                        "Count of raw values between 5 msec and 150 sec is 1")
-        XCTAssertEqual(10_000, Self.histogram.count(within: 5_000 ... 150_000_000),
+        XCTAssertEqual(10_000, histogram.count(within: 5_000 ... 150_000_000),
                        "Count of values between 5 msec and 150 sec is 10,000")
     }
 
     func testCountForValue() {
-        XCTAssertEqual(0, Self.rawHistogram.count(within: 10_000 ... 10_010),
+        XCTAssertEqual(0, rawHistogram.count(within: 10_000 ... 10_010),
                        "Count of raw values at 10 msec is 0")
-        XCTAssertEqual(1, Self.histogram.count(within: 10_000 ... 10_010),
+        XCTAssertEqual(1, histogram.count(within: 10_000 ... 10_010),
                        "Count of values at 10 msec is 0")
-        XCTAssertEqual(10_000, Self.rawHistogram.countForValue(1_000),
+        XCTAssertEqual(10_000, rawHistogram.countForValue(1_000),
                        "Count of raw values at 1 msec is 10,000")
-        XCTAssertEqual(10_000, Self.histogram.countForValue(1_000),
+        XCTAssertEqual(10_000, histogram.countForValue(1_000),
                        "Count of values at 1 msec is 10,000")
     }
 
     func testPercentiles() {
-        for iv in Self.histogram.percentiles(ticksPerHalfDistance: 5) {
+        for iv in histogram.percentiles(ticksPerHalfDistance: 5) {
             XCTAssertEqual(
-                iv.value, Self.histogram.highestEquivalentForValue(Self.histogram.valueAtPercentile(iv.percentile)),
+                iv.value, histogram.highestEquivalentForValue(histogram.valueAtPercentile(iv.percentile)),
                 "Iterator value: \(iv.value), count: \(iv.count), percentile: \(iv.percentile)\n" +
-                    "histogram valueAtPercentile(\(iv.percentile)): \(Self.histogram.valueAtPercentile(iv.percentile)), " +
-                    "highest equivalent value: \(Self.histogram.highestEquivalentForValue(Self.histogram.valueAtPercentile(iv.percentile)))"
+                    "histogram valueAtPercentile(\(iv.percentile)): \(histogram.valueAtPercentile(iv.percentile)), " +
+                    "highest equivalent value: \(histogram.highestEquivalentForValue(histogram.valueAtPercentile(iv.percentile)))"
             )
         }
     }
@@ -255,7 +255,7 @@ final class HistogramDataAccessTests: XCTestCase {
 
         // Iterate data using linear buckets of 100 msec each.
         var index = 0
-        for iv in Self.rawHistogram.linearBucketValues(valueUnitsPerBucket: 100_000 /* 100 msec */ ) {
+        for iv in rawHistogram.linearBucketValues(valueUnitsPerBucket: 100_000 /* 100 msec */ ) {
             let countAddedInThisBucket = iv.countAddedInThisIterationStep
             if index == 0 {
                 XCTAssertEqual(10_000, countAddedInThisBucket, "Raw Linear 100 msec bucket # 0 added a count of 10000")
@@ -272,7 +272,7 @@ final class HistogramDataAccessTests: XCTestCase {
         // Iterate data using linear buckets of 10 msec each.
         index = 0
         var totalAddedCounts: UInt64 = 0
-        for iv in Self.histogram.linearBucketValues(valueUnitsPerBucket: 10_000 /* 10 msec */ ) {
+        for iv in histogram.linearBucketValues(valueUnitsPerBucket: 10_000 /* 10 msec */ ) {
             let countAddedInThisBucket = iv.countAddedInThisIterationStep
             if index == 0 {
                 XCTAssertEqual(10_000, countAddedInThisBucket, "Linear 1 sec bucket # 0 [\(iv.prevValue)..\(iv.value)] added a count of 10000")
@@ -292,7 +292,7 @@ final class HistogramDataAccessTests: XCTestCase {
         // Iterate data using linear buckets of 1 msec each.
         index = 0
         totalAddedCounts = 0
-        for iv in Self.histogram.linearBucketValues(valueUnitsPerBucket: 1_000 /* 1 msec */ ) {
+        for iv in histogram.linearBucketValues(valueUnitsPerBucket: 1_000 /* 1 msec */ ) {
             let countAddedInThisBucket = iv.countAddedInThisIterationStep
             if index == 1 {
                 XCTAssertEqual(10_000, countAddedInThisBucket, "Linear 1 sec bucket # 0 [\(iv.prevValue)..\(iv.value)] added a count of 10000")
@@ -319,7 +319,7 @@ final class HistogramDataAccessTests: XCTestCase {
     func testLogarithmicBucketValues() {
         // Iterate raw data using logarithmic buckets starting at 10 msec.
         var index = 0
-        for iv in Self.rawHistogram.logarithmicBucketValues(valueUnitsInFirstBucket: 10_000 /* 10 msec */, logBase: 2) {
+        for iv in rawHistogram.logarithmicBucketValues(valueUnitsInFirstBucket: 10_000 /* 10 msec */, logBase: 2) {
             let countAddedInThisBucket = iv.countAddedInThisIterationStep
             if index == 0 {
                 XCTAssertEqual(10_000, countAddedInThisBucket, "Raw Logarithmic 10 msec bucket # 0 added a count of 10000")
@@ -334,7 +334,7 @@ final class HistogramDataAccessTests: XCTestCase {
 
         index = 0
         var totalAddedCounts: UInt64 = 0
-        for iv in Self.histogram.logarithmicBucketValues(valueUnitsInFirstBucket: 10_000 /* 10 msec */, logBase: 2) {
+        for iv in histogram.logarithmicBucketValues(valueUnitsInFirstBucket: 10_000 /* 10 msec */, logBase: 2) {
             let countAddedInThisBucket = iv.countAddedInThisIterationStep
             if index == 0 {
                 XCTAssertEqual(10_000, countAddedInThisBucket,
@@ -350,7 +350,7 @@ final class HistogramDataAccessTests: XCTestCase {
     func testRecordedValues() {
         // Iterate raw data by stepping through every value that has a count recorded:
         var index = 0
-        for iv in Self.rawHistogram.recordedValues() {
+        for iv in rawHistogram.recordedValues() {
             let countAddedInThisBucket = iv.countAddedInThisIterationStep
             if index == 0 {
                 XCTAssertEqual(10_000, countAddedInThisBucket, "Raw recorded value bucket # 0 added a count of 10000")
@@ -363,7 +363,7 @@ final class HistogramDataAccessTests: XCTestCase {
 
         index = 0
         var totalAddedCounts: UInt64 = 0
-        for iv in Self.histogram.recordedValues() {
+        for iv in histogram.recordedValues() {
             let countAddedInThisBucket = iv.countAddedInThisIterationStep
             if index == 0 {
                 XCTAssertEqual(10_000, countAddedInThisBucket,
@@ -385,11 +385,11 @@ final class HistogramDataAccessTests: XCTestCase {
         var totalValueToThisPoint: UInt64 = 0
 
         // Iterate raw data by stepping through every value that has a count recorded:
-        for v in Self.rawHistogram.allValues() {
+        for v in rawHistogram.allValues() {
             let countAddedInThisBucket = v.countAddedInThisIterationStep
             if index == 1_000 {
                 XCTAssertEqual(10_000, countAddedInThisBucket, "Raw allValues bucket # 0 added a count of 10000")
-            } else if Self.histogram.valuesAreEquivalent(v.value, 100_000_000) {
+            } else if histogram.valuesAreEquivalent(v.value, 100_000_000) {
                 XCTAssertEqual(1, countAddedInThisBucket, "Raw allValues value bucket # \(index) added a count of 1")
             } else {
                 XCTAssertEqual(0, countAddedInThisBucket, "Raw allValues value bucket # \(index) added a count of 0")
@@ -400,12 +400,12 @@ final class HistogramDataAccessTests: XCTestCase {
             XCTAssertEqual(totalValueToThisPoint, v.totalValueToThisValue, "total Value should match")
             index += 1
         }
-        XCTAssertEqual(Self.histogram.counts.count, index, "index should be equal to counts array length")
+        XCTAssertEqual(histogram.counts.count, index, "index should be equal to counts array length")
 
         index = 0
         var totalAddedCounts: UInt64 = 0
 
-        for v in Self.histogram.allValues() {
+        for v in histogram.allValues() {
             let countAddedInThisBucket = v.countAddedInThisIterationStep
             if index == 1_000 {
                 XCTAssertEqual(10_000, countAddedInThisBucket,
@@ -415,10 +415,10 @@ final class HistogramDataAccessTests: XCTestCase {
                            "The count in AllValues bucket # \(index)" +
                                " is exactly the amount added since the last iteration")
             totalAddedCounts += countAddedInThisBucket
-            XCTAssertTrue(Self.histogram.valuesAreEquivalent(Self.histogram.valueFromIndex(index), v.value), "valueFromIndex() should be equal to value")
+            XCTAssertTrue(histogram.valuesAreEquivalent(histogram.valueFromIndex(index), v.value), "valueFromIndex() should be equal to value")
             index += 1
         }
-        XCTAssertEqual(Self.histogram.counts.count, index, "index should be equal to counts array length")
+        XCTAssertEqual(self.histogram.counts.count, index, "index should be equal to counts array length")
         XCTAssertEqual(20_000, totalAddedCounts, "Total added counts should be 20000")
     }
 
