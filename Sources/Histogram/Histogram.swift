@@ -65,17 +65,17 @@ public struct Histogram<Count: FixedWidthInteger & Codable & Sendable>: Codable,
     /// The highest value to be tracked by the histogram.
     public private(set) var highestTrackableValue: UInt64
 
-    var bucketCount: Int
+    @usableFromInline var bucketCount: Int
 
     /**
      * Power-of-two length of linearly scaled array slots in the counts array. Long enough to hold the first sequence of
      * entries that must be distinguished by a single unit (determined by configured precision).
      */
-    var subBucketCount: Int { 1 << (subBucketHalfCountMagnitude + 1) }
-    var subBucketHalfCount: Int { 1 << subBucketHalfCountMagnitude }
+    @inlinable var subBucketCount: Int { 1 << (subBucketHalfCountMagnitude + 1) }
+    @inlinable var subBucketHalfCount: Int { 1 << subBucketHalfCountMagnitude }
 
     // Biggest value that can fit in bucket 0
-    let subBucketMask: UInt64
+    @usableFromInline let subBucketMask: UInt64
 
     @usableFromInline var maxValue: UInt64 = 0
 
@@ -86,7 +86,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable & Sendable>: Codable,
     @usableFromInline var _totalCount: UInt64 = 0
 
     /// Total count of all recorded values in the histogram
-    public var totalCount: UInt64 { _totalCount }
+    @inlinable public var totalCount: UInt64 { _totalCount }
 
     /// The number of significant decimal digits to which the histogram will maintain value resolution and separation.
     public let numberOfSignificantValueDigits: SignificantDigits
@@ -94,13 +94,13 @@ public struct Histogram<Count: FixedWidthInteger & Codable & Sendable>: Codable,
     /// Control whether or not the histogram can auto-resize and auto-adjust its ``highestTrackableValue``.
     public var autoResize = false
 
-    let subBucketHalfCountMagnitude: UInt8
+    @usableFromInline let subBucketHalfCountMagnitude: UInt8
 
     // Number of leading zeros in the largest value that can fit in bucket 0.
-    let leadingZeroCountBase: UInt8
+    @usableFromInline let leadingZeroCountBase: UInt8
 
     // Largest k such that 2^k <= lowestDiscernibleValue
-    let unitMagnitude: UInt8
+    @usableFromInline let unitMagnitude: UInt8
 
     // MARK: Construction
 
@@ -299,6 +299,88 @@ public struct Histogram<Count: FixedWidthInteger & Codable & Sendable>: Codable,
         }
 
         return true
+    }
+
+    // MARK: Merging.
+
+    /**
+     * Adds the counts from `other` into `self`, bucket-by-bucket.
+     *
+     * Both histograms must have the same ``numberOfSignificantValueDigits`` and
+     * ``lowestDiscernibleValue`` — those determine the bucket layout so a mismatch is
+     * a precondition failure.
+     *
+     * Matching the semantics of replaying `other.recordedValues()` into `self` via
+     * ``record(_:count:)``, this method touches `self`'s public range state only when
+     * a recorded value in `other` would not fit in `self`'s current backing array:
+     *
+     * - If every nonzero bucket in `other` already fits in `self` (`other`'s backing
+     *   array may still be longer — its tail past `self.counts.count` is guaranteed
+     *   all-zero because layouts match and `other.maxValue` sits at or below that
+     *   cutoff), only the common prefix is summed. `self.counts.count` and
+     *   `self.highestTrackableValue` are not touched.
+     * - Otherwise, if `self.autoResize == true`, `self` grows just enough to index
+     *   `other.maxValue` (not `other.highestTrackableValue`, which can be far larger
+     *   if `other` was resized and then reset), and the merge proceeds.
+     * - Otherwise, the merge is a precondition failure — silently accepting would
+     *   drop counts. This is the same acceptance rule ``record(_:count:)`` uses:
+     *   values above the nominal ``highestTrackableValue`` are fine as long as their
+     *   computed index fits in ``counts`` (subBucketCount is always rounded up to a
+     *   power of two, so there is headroom past the nominal ceiling).
+     *
+     * This is equivalent to iterating `other.recordedValues()` and calling
+     * `record(v, count: c)` on `self` for each entry, but much faster: it reduces to
+     * an element-wise sum of the overlapping backing count arrays. It also avoids
+     * the cross-module generic-specialisation miss that ``recordedValues()`` can
+     * trigger for downstream consumers when iterating to merge.
+     *
+     * ``totalCount``, ``maxRecorded``, and ``minNonZero`` are updated accordingly.
+     *
+     * - Parameter other: The histogram to merge into `self`. Left unchanged.
+     */
+    @inlinable
+    public mutating func add(_ other: Self) {
+        precondition(
+            numberOfSignificantValueDigits == other.numberOfSignificantValueDigits &&
+                lowestDiscernibleValue == other.lowestDiscernibleValue,
+            "Cannot merge histograms with different bucket layouts " +
+                "(numberOfSignificantValueDigits and lowestDiscernibleValue must match)")
+
+        // Layouts match, so `self` and `other` compute the same index for a given
+        // value. `other`'s nonzero buckets all live at indices <=
+        // `countsIndexForValue(other.maxValue)`, so the merge is lossless iff
+        // `self` can index `other.maxValue`. If not, either grow `self`
+        // (autoResize) or trap. A new or reset `other` has `maxValue == 0`, for
+        // which the index is 0 < `counts.count`, so no resize triggers —
+        // matching a replay of `other.recordedValues()`, which would be a no-op.
+        if countsIndexForValue(other.maxValue) >= counts.count {
+            if autoResize {
+                resize(newHighestTrackableValue: other.maxValue)
+            } else {
+                preconditionFailure(
+                    "Cannot merge: `other` has recorded a value that does not fit " +
+                        "in this histogram's backing array and autoResize is disabled " +
+                        "(would drop counts)")
+            }
+        }
+
+        let commonLength = Swift.min(counts.count, other.counts.count)
+        counts.withUnsafeMutableBufferPointer { dst in
+            other.counts.withUnsafeBufferPointer { src in
+                for i in 0 ..< commonLength {
+                    dst[i] &+= src[i]
+                }
+            }
+        }
+
+        _totalCount &+= other._totalCount
+
+        if other.maxValue > maxValue {
+            maxValue = other.maxValue
+        }
+        if other.minNonZeroValue < minNonZeroValue {
+            minNonZeroValue = other.minNonZeroValue
+        }
     }
 
     // MARK: Clearing.
@@ -592,41 +674,65 @@ public struct Histogram<Count: FixedWidthInteger & Codable & Sendable>: Codable,
          * The sum of all recorded values in the histogram at values equal or smaller than value.
          */
         public let totalValueToThisValue: UInt64
+
+        @usableFromInline
+        init(
+            value: UInt64,
+            prevValue: UInt64,
+            count: Count,
+            percentile: Double,
+            percentileLevelIteratedTo: Double,
+            countAddedInThisIterationStep: UInt64,
+            totalCountToThisValue: UInt64,
+            totalValueToThisValue: UInt64
+        ) {
+            self.value = value
+            self.prevValue = prevValue
+            self.count = count
+            self.percentile = percentile
+            self.percentileLevelIteratedTo = percentileLevelIteratedTo
+            self.countAddedInThisIterationStep = countAddedInThisIterationStep
+            self.totalCountToThisValue = totalCountToThisValue
+            self.totalValueToThisValue = totalValueToThisValue
+        }
     }
 
     /**
      * Common part of all iterators.
      */
+    @usableFromInline
     struct IteratorImpl {
-        let histogram: Histogram
+        @usableFromInline let histogram: Histogram
 
-        let arrayTotalCount: UInt64
+        @usableFromInline let arrayTotalCount: UInt64
 
-        var currentIndex: Int = 0
-        var currentValueAtIndex: UInt64 = 0
+        @usableFromInline var currentIndex: Int = 0
+        @usableFromInline var currentValueAtIndex: UInt64 = 0
 
-        var nextValueAtIndex: UInt64
+        @usableFromInline var nextValueAtIndex: UInt64
 
-        var prevValueIteratedTo: UInt64 = 0
-        var totalCountToPrevIndex: UInt64 = 0
+        @usableFromInline var prevValueIteratedTo: UInt64 = 0
+        @usableFromInline var totalCountToPrevIndex: UInt64 = 0
 
-        var totalCountToCurrentIndex: UInt64 = 0
-        var totalValueToCurrentIndex: UInt64 = 0
+        @usableFromInline var totalCountToCurrentIndex: UInt64 = 0
+        @usableFromInline var totalValueToCurrentIndex: UInt64 = 0
 
-        var countAtThisValue: Count = 0
+        @usableFromInline var countAtThisValue: Count = 0
 
-        private var freshSubBucket = true
+        @usableFromInline var freshSubBucket = true
 
+        @inlinable
         init(histogram: Histogram) {
             self.histogram = histogram
             arrayTotalCount = histogram.totalCount
             nextValueAtIndex = 1 << histogram.unitMagnitude
         }
 
-        var hasNext: Bool {
+        @inlinable var hasNext: Bool {
             totalCountToCurrentIndex < arrayTotalCount
         }
 
+        @inlinable
         mutating func moveNext() {
             assert(!exhaustedSubBuckets)
 
@@ -638,6 +744,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable & Sendable>: Codable,
             }
         }
 
+        @inlinable
         mutating func makeIterationValueAndUpdatePrev(value: UInt64? = nil, percentileIteratedTo: Double? = nil) -> IterationValue {
             let valueIteratedTo = value ?? valueIteratedTo
 
@@ -656,10 +763,11 @@ public struct Histogram<Count: FixedWidthInteger & Codable & Sendable>: Codable,
             )
         }
 
-        var exhaustedSubBuckets: Bool { currentIndex >= histogram.counts.count }
+        @inlinable var exhaustedSubBuckets: Bool { currentIndex >= histogram.counts.count }
 
-        private var valueIteratedTo: UInt64 { histogram.highestEquivalentForValue(currentValueAtIndex) }
+        @inlinable var valueIteratedTo: UInt64 { histogram.highestEquivalentForValue(currentValueAtIndex) }
 
+        @inlinable
         mutating func incrementSubBucket() {
             freshSubBucket = true
             currentIndex += 1
@@ -676,12 +784,13 @@ public struct Histogram<Count: FixedWidthInteger & Codable & Sendable>: Codable,
      * values are exhausted.
      */
     public struct Percentiles: Sequence, IteratorProtocol {
-        var impl: IteratorImpl
-        let percentileTicksPerHalfDistance: Int
-        var percentileLevelToIterateTo: Double
-        var percentileLevelToIterateFrom: Double
-        var reachedLastRecordedValue: Bool
+        @usableFromInline var impl: IteratorImpl
+        @usableFromInline let percentileTicksPerHalfDistance: Int
+        @usableFromInline var percentileLevelToIterateTo: Double
+        @usableFromInline var percentileLevelToIterateFrom: Double
+        @usableFromInline var reachedLastRecordedValue: Bool
 
+        @inlinable
         init(histogram: Histogram, percentileTicksPerHalfDistance: Int) {
             impl = IteratorImpl(histogram: histogram)
             self.percentileTicksPerHalfDistance = percentileTicksPerHalfDistance
@@ -690,6 +799,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable & Sendable>: Codable,
             reachedLastRecordedValue = false
         }
 
+        @inlinable
         public mutating func next() -> IterationValue? {
             if !impl.hasNext {
                 // We want one additional last step to 100%
@@ -715,7 +825,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable & Sendable>: Codable,
             return nil
         }
 
-        private var reachedIterationLevel: Bool {
+        @inlinable var reachedIterationLevel: Bool {
             if impl.countAtThisValue == 0 {
                 return false
             }
@@ -723,7 +833,8 @@ public struct Histogram<Count: FixedWidthInteger & Codable & Sendable>: Codable,
             return currentPercentile >= percentileLevelToIterateTo
         }
 
-        private mutating func incrementIterationLevel() {
+        @inlinable
+        mutating func incrementIterationLevel() {
             percentileLevelToIterateFrom = percentileLevelToIterateTo
 
             // The choice to maintain fixed-sized "ticks" in each half-distance to 100% [starting
@@ -755,12 +866,13 @@ public struct Histogram<Count: FixedWidthInteger & Codable & Sendable>: Codable,
      * the next bucket boundary value.
      */
     public struct LinearBucketValues: Sequence, IteratorProtocol {
-        var impl: IteratorImpl
-        let valueUnitsPerBucket: UInt64
+        @usableFromInline var impl: IteratorImpl
+        @usableFromInline let valueUnitsPerBucket: UInt64
 
-        var currentStepHighestValueReportingLevel: UInt64
-        var currentStepLowestValueReportingLevel: UInt64
+        @usableFromInline var currentStepHighestValueReportingLevel: UInt64
+        @usableFromInline var currentStepLowestValueReportingLevel: UInt64
 
+        @inlinable
         init(histogram: Histogram, valueUnitsPerBucket: UInt64) {
             impl = IteratorImpl(histogram: histogram)
             self.valueUnitsPerBucket = valueUnitsPerBucket
@@ -768,6 +880,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable & Sendable>: Codable,
             currentStepLowestValueReportingLevel = histogram.lowestEquivalentForValue(currentStepHighestValueReportingLevel)
         }
 
+        @inlinable
         public mutating func next() -> IterationValue? {
             if !hasNext {
                 return nil
@@ -787,7 +900,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable & Sendable>: Codable,
             return nil
         }
 
-        private var hasNext: Bool {
+        @inlinable var hasNext: Bool {
             if impl.hasNext {
                 return true
             }
@@ -801,12 +914,13 @@ public struct Histogram<Count: FixedWidthInteger & Codable & Sendable>: Codable,
             return currentStepHighestValueReportingLevel < impl.nextValueAtIndex
         }
 
-        private var reachedIterationLevel: Bool {
+        @inlinable var reachedIterationLevel: Bool {
             impl.currentValueAtIndex >= currentStepLowestValueReportingLevel ||
                 impl.currentIndex >= impl.histogram.counts.count - 1
         }
 
-        private mutating func incrementIterationLevel() {
+        @inlinable
+        mutating func incrementIterationLevel() {
             currentStepHighestValueReportingLevel += valueUnitsPerBucket
             currentStepLowestValueReportingLevel = impl.histogram.lowestEquivalentForValue(currentStepHighestValueReportingLevel)
         }
@@ -818,13 +932,14 @@ public struct Histogram<Count: FixedWidthInteger & Codable & Sendable>: Codable,
      * `logBase`, terminating when all recorded histogram values are exhausted.
      */
     public struct LogarithmicBucketValues: Sequence, IteratorProtocol {
-        var impl: IteratorImpl
-        let valueUnitsInFirstBucket: UInt64
-        let logBase: Double
-        var nextValueReportingLevel: Double
-        var currentStepHighestValueReportingLevel: UInt64
-        var currentStepLowestValueReportingLevel: UInt64
+        @usableFromInline var impl: IteratorImpl
+        @usableFromInline let valueUnitsInFirstBucket: UInt64
+        @usableFromInline let logBase: Double
+        @usableFromInline var nextValueReportingLevel: Double
+        @usableFromInline var currentStepHighestValueReportingLevel: UInt64
+        @usableFromInline var currentStepLowestValueReportingLevel: UInt64
 
+        @inlinable
         init(histogram: Histogram, valueUnitsInFirstBucket: UInt64, logBase: Double) {
             impl = IteratorImpl(histogram: histogram)
             self.valueUnitsInFirstBucket = valueUnitsInFirstBucket
@@ -834,6 +949,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable & Sendable>: Codable,
             currentStepLowestValueReportingLevel = histogram.lowestEquivalentForValue(currentStepHighestValueReportingLevel)
         }
 
+        @inlinable
         public mutating func next() -> IterationValue? {
             if !hasNext {
                 return nil
@@ -853,7 +969,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable & Sendable>: Codable,
             return nil
         }
 
-        private var hasNext: Bool {
+        @inlinable var hasNext: Bool {
             if impl.hasNext {
                 return true
             }
@@ -864,12 +980,13 @@ public struct Histogram<Count: FixedWidthInteger & Codable & Sendable>: Codable,
             return impl.histogram.lowestEquivalentForValue(UInt64(nextValueReportingLevel)) < impl.nextValueAtIndex
         }
 
-        private var reachedIterationLevel: Bool {
+        @inlinable var reachedIterationLevel: Bool {
             impl.currentValueAtIndex >= currentStepLowestValueReportingLevel ||
                 impl.currentIndex >= impl.histogram.counts.count - 1
         }
 
-        private mutating func incrementIterationLevel() {
+        @inlinable
+        mutating func incrementIterationLevel() {
             nextValueReportingLevel *= logBase
             currentStepHighestValueReportingLevel = UInt64(nextValueReportingLevel) - 1
             currentStepLowestValueReportingLevel = impl.histogram.lowestEquivalentForValue(currentStepHighestValueReportingLevel)
@@ -882,13 +999,15 @@ public struct Histogram<Count: FixedWidthInteger & Codable & Sendable>: Codable,
      * all recorded histogram values are exhausted.
      */
     public struct RecordedValues: Sequence, IteratorProtocol {
-        var impl: IteratorImpl
-        var visitedIndex = -1
+        @usableFromInline var impl: IteratorImpl
+        @usableFromInline var visitedIndex = -1
 
+        @inlinable
         init(histogram: Histogram) {
             impl = IteratorImpl(histogram: histogram)
         }
 
+        @inlinable
         public mutating func next() -> IterationValue? {
             if !impl.hasNext {
                 return nil
@@ -908,12 +1027,13 @@ public struct Histogram<Count: FixedWidthInteger & Codable & Sendable>: Codable,
             return nil
         }
 
-        private var reachedIterationLevel: Bool {
+        @inlinable var reachedIterationLevel: Bool {
             let currentCount = impl.histogram.counts[impl.currentIndex]
             return currentCount != 0 && visitedIndex != impl.currentIndex
         }
 
-        private mutating func incrementIterationLevel() {
+        @inlinable
+        mutating func incrementIterationLevel() {
             visitedIndex = impl.currentIndex
         }
     }
@@ -925,13 +1045,15 @@ public struct Histogram<Count: FixedWidthInteger & Codable & Sendable>: Codable,
      * values are exhausted.
      */
     public struct AllValues: Sequence, IteratorProtocol {
-        var impl: IteratorImpl
-        var visitedIndex = -1
+        @usableFromInline var impl: IteratorImpl
+        @usableFromInline var visitedIndex = -1
 
+        @inlinable
         init(histogram: Histogram) {
             impl = IteratorImpl(histogram: histogram)
         }
 
+        @inlinable
         public mutating func next() -> IterationValue? {
             if !hasNext {
                 return nil
@@ -951,16 +1073,17 @@ public struct Histogram<Count: FixedWidthInteger & Codable & Sendable>: Codable,
             return nil
         }
 
-        private var hasNext: Bool {
+        @inlinable var hasNext: Bool {
             // Unlike other iterators AllValuesIterator is only done when we've exhausted the indices:
             impl.currentIndex < impl.histogram.counts.count - 1
         }
 
-        private var reachedIterationLevel: Bool {
+        @inlinable var reachedIterationLevel: Bool {
             visitedIndex != impl.currentIndex
         }
 
-        private mutating func incrementIterationLevel() {
+        @inlinable
+        mutating func incrementIterationLevel() {
             visitedIndex = impl.currentIndex
         }
     }
@@ -977,6 +1100,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable & Sendable>: Codable,
      *
      * - Returns: An object implementing `Sequence` protocol over ``IterationValue``.
      */
+    @inlinable
     public func percentiles(ticksPerHalfDistance: Int) -> Percentiles {
         Percentiles(histogram: self, percentileTicksPerHalfDistance: ticksPerHalfDistance)
     }
@@ -992,6 +1116,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable & Sendable>: Codable,
      *
      * - Returns: An object implementing `Sequence` protocol over ``IterationValue``.
      */
+    @inlinable
     public func linearBucketValues(valueUnitsPerBucket: UInt64) -> LinearBucketValues {
         LinearBucketValues(histogram: self, valueUnitsPerBucket: valueUnitsPerBucket)
     }
@@ -1008,6 +1133,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable & Sendable>: Codable,
      *
      * - Returns: An object implementing `Sequence` protocol over ``IterationValue``.
      */
+    @inlinable
     public func logarithmicBucketValues(valueUnitsInFirstBucket: UInt64, logBase: Double) -> LogarithmicBucketValues {
         LogarithmicBucketValues(histogram: self, valueUnitsInFirstBucket: valueUnitsInFirstBucket, logBase: logBase)
     }
@@ -1019,6 +1145,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable & Sendable>: Codable,
      *
      * - Returns: An object implementing `Sequence` protocol over ``IterationValue``.
      */
+    @inlinable
     public func recordedValues() -> RecordedValues {
         RecordedValues(histogram: self)
     }
@@ -1031,6 +1158,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable & Sendable>: Codable,
      *
      * - Returns: An object implementing `Sequence` protocol over ``IterationValue``.
      */
+    @inlinable
     public func allValues() -> AllValues {
         AllValues(histogram: self)
     }
@@ -1129,12 +1257,14 @@ public struct Histogram<Count: FixedWidthInteger & Codable & Sendable>: Codable,
      * - Parameter value: The given value.
      * - Returns: The size of the range of values equivalent to the given value.
      */
+    @inlinable
     public func sizeOfEquivalentRangeForValue(_ value: UInt64) -> UInt64 {
         let bucketIndex = bucketIndexForValue(value)
         let subBucketIndex = subBucketIndexForValue(value, bucketIndex: bucketIndex)
         return sizeOfEquivalentRangeFor(bucketIndex: bucketIndex, subBucketIndex: subBucketIndex)
     }
 
+    @inlinable
     func sizeOfEquivalentRangeFor(bucketIndex: Int, subBucketIndex: Int) -> UInt64 {
         let adjustedBucket = (subBucketIndex >= subBucketCount) ? (bucketIndex + 1) : bucketIndex
         return UInt64(1) << (Int(unitMagnitude) + adjustedBucket)
@@ -1148,6 +1278,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable & Sendable>: Codable,
      * - Parameter value: The given value.
      * - Returns: The lowest value that is equivalent to the given value within the histogram's resolution.
      */
+    @inlinable
     public func lowestEquivalentForValue(_ value: UInt64) -> UInt64 {
         let bucketIndex = bucketIndexForValue(value)
         let subBucketIndex = subBucketIndexForValue(value, bucketIndex: bucketIndex)
@@ -1162,6 +1293,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable & Sendable>: Codable,
      * - Parameter value: The given value.
      * - Returns: The highest value that is equivalent to the given value within the histogram's resolution.
      */
+    @inlinable
     public func highestEquivalentForValue(_ value: UInt64) -> UInt64 {
         nextNonEquivalentForValue(value) - 1
     }
@@ -1204,10 +1336,12 @@ public struct Histogram<Count: FixedWidthInteger & Codable & Sendable>: Codable,
      * - Parameter value: The given value.
      * - Returns: The next value that is not equivalent to the given value within the histogram's resolution.
      */
+    @inlinable
     public func nextNonEquivalentForValue(_ value: UInt64) -> UInt64 {
         lowestEquivalentForValue(value) + sizeOfEquivalentRangeForValue(value)
     }
 
+    @inlinable
     func valueFromIndex(_ index: Int) -> UInt64 {
         var bucketIndex = (index >> subBucketHalfCountMagnitude) - 1
         var subBucketIndex = (index & (subBucketHalfCount - 1)) + subBucketHalfCount
@@ -1220,11 +1354,12 @@ public struct Histogram<Count: FixedWidthInteger & Codable & Sendable>: Codable,
         return valueFrom(bucketIndex: bucketIndex, subBucketIndex: subBucketIndex)
     }
 
-    private func valueFrom(bucketIndex: Int, subBucketIndex: Int) -> UInt64 {
+    @inlinable
+    func valueFrom(bucketIndex: Int, subBucketIndex: Int) -> UInt64 {
         UInt64(subBucketIndex) << (bucketIndex + Int(unitMagnitude))
     }
 
-    @usableFromInline
+    @inlinable
     func countsIndexForValue(_ value: UInt64) -> Int {
         let bucketIndex = bucketIndexForValue(value)
         let subBucketIndex = subBucketIndexForValue(value, bucketIndex: bucketIndex)
@@ -1234,6 +1369,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable & Sendable>: Codable,
     /**
      * - Returns: The lowest (and therefore highest precision) bucket index that can represent the value.
      */
+    @inlinable
     func bucketIndexForValue(_ value: UInt64) -> Int {
         // Calculates the number of powers of two by which the value is greater than the biggest value that fits in
         // bucket 0. This is the bucket index since each successive bucket can hold a value 2x greater.
@@ -1241,6 +1377,7 @@ public struct Histogram<Count: FixedWidthInteger & Codable & Sendable>: Codable,
         Int(leadingZeroCountBase) - (value | subBucketMask).leadingZeroBitCount
     }
 
+    @inlinable
     func subBucketIndexForValue(_ value: UInt64, bucketIndex: Int) -> Int {
         // For ``bucketIndex`` 0, this is just value, so it may be anywhere in 0 to ``subBucketCount``.
         // For other bucketIndex, this will always end up in the top half of subBucketCount: assume that for some bucket
@@ -1251,7 +1388,8 @@ public struct Histogram<Count: FixedWidthInteger & Codable & Sendable>: Codable,
         Int(value >> (bucketIndex + Int(unitMagnitude)))
     }
 
-    private func countsIndexFor(bucketIndex: Int, subBucketIndex: Int) -> Int {
+    @inlinable
+    func countsIndexFor(bucketIndex: Int, subBucketIndex: Int) -> Int {
         // Calculate the index for the first entry that will be used in the bucket (halfway through ``subBucketCount``).
         // For bucketIndex 0, all ``subBucketCount`` entries may be used, but bucketBaseIndex is still set in the middle.
         let bucketBaseIndex = (bucketIndex + 1) << subBucketHalfCountMagnitude
