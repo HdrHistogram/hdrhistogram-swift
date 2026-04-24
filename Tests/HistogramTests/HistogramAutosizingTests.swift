@@ -8,8 +8,6 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 //
 
-// swiftlint:disable todo
-
 @testable import Histogram
 import XCTest
 
@@ -63,19 +61,19 @@ final class HistogramAutosizingTests: XCTestCase {
         XCTAssertEqual(55_296, histogram.counts.count)
     }
 
-    func testAutoSizingAdd() throws {
+    func testAutoSizingAdd() {
         var histogram1 = Histogram<UInt64>(numberOfSignificantValueDigits: .two)
-        //    let histogram2 = Histogram<UInt64>(numberOfSignificantValueDigits: .two)
+        var histogram2 = Histogram<UInt64>(numberOfSignificantValueDigits: .two)
 
         histogram1.record(1_000)
         histogram1.record(1_000_000_000)
 
-        // FIXME:
-        throw XCTSkip("Histogram.add() is not implemented yet")
-        // histogram2.add(histogram1)
+        histogram2.add(histogram1)
 
-        //     XCTAssert(histogram2.valuesAreEquivalent(histogram2.max, 1_000_000_000),
-        //               "Max should be equivalent to 1_000_000_000")
+        XCTAssert(histogram2.valuesAreEquivalent(histogram2.max, 1_000_000_000),
+                  "Max should be equivalent to 1_000_000_000")
+        XCTAssertEqual(histogram2.totalCount, 2)
+        XCTAssertEqual(histogram2, histogram1)
     }
 
     func testAutoSizingAcrossContinuousRange() {
@@ -86,5 +84,3 @@ final class HistogramAutosizingTests: XCTestCase {
         }
     }
 }
-
-// swiftlint:enable todo
